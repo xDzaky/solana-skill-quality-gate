@@ -1,9 +1,14 @@
 {
   "name": "solana-skill-quality-gate",
   "version": "3.0.0",
-  "description": "Quality, safety, and merge-readiness gate for Solana AI Kit skills",
+  "description": "Quality and safety gate for Solana AI Kit skills",
   "type": "module",
   "main": "scripts/skillqa.mjs",
+  "homepage": "https://github.com/xDzaky/solana-skill-quality-gate",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xDzaky/solana-skill-quality-gate.git"
+  },
   "scripts": {
     "test": "node scripts/test.mjs",
     "audit:good": "node scripts/skillqa.mjs audit scripts/fixtures/good-skill",
@@ -22,14 +27,17 @@
   },
   "keywords": [
     "solana",
-    "ai-kit",
-    "skill",
+    "solana-ai-kit",
+    "ai-skills",
+    "claude-code",
     "quality-gate",
-    "audit",
-    "security",
-    "supply-chain",
+    "skill-bounty",
+    "static-analysis",
+    "security-scanner",
     "sarif",
-    "batch-review"
+    "developer-tools",
+    "supply-chain",
+    "agent-skills"
   ],
   "license": "MIT",
   "engines": {

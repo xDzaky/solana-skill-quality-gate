@@ -1,7 +1,7 @@
 # Skill Audit Report
 
 **Skill**: solana-skill-quality-gate
-**Audited**: 2026-06-28T14:49:55.768Z
+**Audited**: 2026-06-28T15:32:31.350Z
 **Scanner**: solana-skill-quality-gate v3.0.0
 **Overall Score**: 100/100
 **Rating**: Excellent
@@ -38,9 +38,9 @@
 
 ### Progressive Disclosure
 
-- SKILL.md is 49 lines (< 200)
-- SKILL.md is 1890 bytes (< 8192)
-- Routes to 7 focused .md files: what-makes-a-good-solana-skill.md, quality-gates.md, deep-audit.md, safety-patterns.md, solana-ecosystem-signals.md, quick-audit.md, what-makes-a-good-solana-skill.md
+- SKILL.md is 61 lines (< 200)
+- SKILL.md is 2046 bytes (< 8192)
+- Routes to 6 focused .md files: what-makes-a-good-solana-skill.md, quickstart.md, what-makes-a-good-solana-skill.md, safety-patterns.md, solana-ecosystem-signals.md, quality-gates.md
 - No excessively large inline instruction blocks
 
 ### Safety & Supply-Chain
@@ -67,7 +67,7 @@
 - README explains the problem/motivation
 - README includes usage examples or code blocks
 - examples/ directory found
-- README has substantial content (7897 chars)
+- README has substantial content (9741 chars)
 
 ---
 

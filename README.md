@@ -19,7 +19,7 @@ node scripts/skillqa.mjs audit ./my-skill
 # 3. Fix blockers, then submit with confidence
 ```
 
-The scanner checks structure, progressive disclosure, safety, Solana fit, install readiness, and docs — giving you a score out of 100 with a PR-ready checklist.
+Score ≥ 80 with zero policy caps → **ready to submit**. See [quickstart](./skill/quickstart.md) for the full 60-second workflow.
 
 ---
 
@@ -137,6 +137,7 @@ node scripts/skillqa.mjs audit <path> --strict                  # exit 2 on safe
 
 The `skill/` folder includes rich guides for builders:
 
+- [Quickstart](./skill/quickstart.md) — get value in 60 seconds
 - [What Makes a Good Solana Skill](./skill/what-makes-a-good-solana-skill.md) — structure, DO/DON'T examples
 - [Safety Patterns](./skill/safety-patterns.md) — anti-patterns to avoid with safe alternatives
 - [Solana Ecosystem Signals](./skill/solana-ecosystem-signals.md) — how to prove real Solana fit
@@ -144,10 +145,45 @@ The `skill/` folder includes rich guides for builders:
 
 ---
 
-## Agent & Command Integration
+## Agent Integration / Claude Code Workflow
 
-- **Agent**: [`agents/skill-reviewer-agent.md`](./agents/skill-reviewer-agent.md) — activates on "review this skill"
-- **Command**: [`commands/review-skill.md`](./commands/review-skill.md) — `/review-skill <path>` gives go/no-go verdict
+This skill includes an agent persona and a slash command for Claude Code integration.
+
+### `/review-skill <path>`
+
+Run the quality gate and get a go/no-go verdict:
+
+```
+/review-skill ./my-solana-skill
+```
+
+Output: score breakdown, top 3 fixes, and a verdict (READY / FIX FIRST / DO NOT SUBMIT).
+
+See [`commands/review-skill.md`](./commands/review-skill.md) for details.
+
+### Reviewer Agent
+
+The [`agents/skill-reviewer-agent.md`](./agents/skill-reviewer-agent.md) activates when you say:
+- "review this skill"
+- "check if my skill is submission-ready"
+- "audit my skill"
+
+It runs the scanner, interprets findings, and outputs a PR-ready checklist.
+
+### CLAUDE.md Integration
+
+Add this to your project's `CLAUDE.md` to auto-trigger the skill reviewer:
+
+```markdown
+## Skill Quality Gate
+
+When working in a Solana AI Kit skill directory (contains skill/SKILL.md),
+automatically run the quality gate before suggesting a PR:
+
+  node /path/to/solana-skill-quality-gate/scripts/skillqa.mjs audit .
+
+If score < 80 or policy caps are present, list fixes before proceeding.
+```
 
 ---
 
@@ -162,18 +198,35 @@ The `skill/` folder includes rich guides for builders:
 
 ---
 
+## Recommended GitHub Topics
+
+Add these topics in your repo settings for discoverability:
+
+```
+solana  solana-ai-kit  ai-skills  claude-code  skill-bounty
+quality-gate  security-scanner  static-analysis  sarif
+developer-tools  supply-chain  agent-skills
+```
+
+---
+
 ## Judge Checklist
 
 - [ ] `npm test` passes (50 tests)
 - [ ] `npm run gate` passes (self-audit ≥ 90)
 - [ ] Builder pre-submit workflow exists ("Use It Before You Submit")
+- [ ] [Quickstart](./skill/quickstart.md) exists (60-second onboarding)
 - [ ] [Community scan report](./examples/community-scan-report.md) shows 5 archetypes
-- [ ] SKILL.md routes to focused docs (safety, ecosystem, quality)
+- [ ] [Adoption guide](./examples/adoption-guide.md) with GitHub Actions snippet
+- [ ] [CHANGELOG.md](./CHANGELOG.md) shows iteration history
+- [ ] SKILL.md routes to focused docs (no broken links)
 - [ ] `/review-skill` command exists
 - [ ] Skill reviewer agent exists
+- [ ] Agent workflow documented in README
+- [ ] Package metadata complete (homepage, repository, keywords)
 - [ ] Batch review works: `skillqa batch ... --json`
 - [ ] SARIF output works: `skillqa report ... --sarif`
-- [ ] Test count consistent across README, SUBMISSION.md, CI
+- [ ] Test count consistent across README, SUBMISSION.md, CI (50)
 - [ ] Zero npm dependencies
 - [ ] No network calls, no secrets, no script execution
 
@@ -187,6 +240,7 @@ See [SUBMISSION.md](./SUBMISSION.md) for the full bounty submission.
 solana-skill-quality-gate/
 ├── skill/                         # Skill docs (progressive disclosure)
 │   ├── SKILL.md                  # Router entry point
+│   ├── quickstart.md             # 60-second onboarding
 │   ├── what-makes-a-good-solana-skill.md
 │   ├── safety-patterns.md
 │   ├── solana-ecosystem-signals.md
@@ -204,8 +258,12 @@ solana-skill-quality-gate/
 │   ├── test.mjs                  # 50 tests
 │   └── fixtures/                 # Test fixtures
 ├── examples/                     # Reports, SARIF, batch, community scan
+│   ├── adoption-guide.md         # Builder + maintainer workflow
+│   ├── community-scan-report.md  # 5 archetype scan
+│   └── ...
 ├── install.sh / install-custom.sh
 ├── SUBMISSION.md                 # Bounty submission
+├── CHANGELOG.md                  # Iteration history
 ├── .github/workflows/test.yml    # CI (Node 18/20/22)
 ├── LICENSE                       # MIT
 └── README.md
@@ -216,8 +274,11 @@ solana-skill-quality-gate/
 ## Links
 
 - [Solana AI Kit](https://github.com/solanabr/solana-ai-kit)
+- [Reference Skill](https://github.com/solanabr/solana-game-skill)
 - [Skill Bounty](https://github.com/solanabr/skill-bounty)
 - [Community Scan Report](./examples/community-scan-report.md)
+- [Adoption Guide](./examples/adoption-guide.md)
+- [CHANGELOG](./CHANGELOG.md)
 - [SUBMISSION.md](./SUBMISSION.md)
 
 ## License
