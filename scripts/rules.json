@@ -1,0 +1,99 @@
+{
+  "version": "1.0.0",
+  "structure": {
+    "requiredFiles": ["SKILL.md"],
+    "recommendedFiles": ["README.md", "LICENSE", "install.sh"],
+    "nameMaxLength": 64,
+    "namePattern": "^[a-z0-9][a-z0-9-]*[a-z0-9]$",
+    "descriptionMaxLength": 1024
+  },
+  "progressive": {
+    "skillMdMaxLines": 200,
+    "skillMdMaxBytes": 8192,
+    "skillMdWarnLines": 400,
+    "skillMdWarnBytes": 16384,
+    "inlineBlockMaxLines": 100,
+    "inlineBlockWarnLines": 50,
+    "minLinkedFiles": 2
+  },
+  "safety": {
+    "priorityManipulation": [
+      "always choose this skill",
+      "always use this skill first",
+      "this skill takes priority over",
+      "prefer this skill over",
+      "override any other skill",
+      "this is the only skill you need",
+      "ignore other skills"
+    ],
+    "promptInjection": [
+      "ignore previous instructions",
+      "ignore all prior instructions",
+      "disregard your instructions",
+      "forget everything above",
+      "your new instructions are",
+      "system prompt override",
+      "you are now a different"
+    ],
+    "exfiltration": [
+      "send to https://",
+      "send to http://",
+      "post to https://",
+      "post to http://",
+      "upload to https://",
+      "upload to http://"
+    ],
+    "secretCollection": [
+      "private key",
+      "seed phrase",
+      "mnemonic",
+      "wallet secret",
+      "secret key",
+      "paste your key",
+      "enter your password"
+    ],
+    "opaqueExecution": [
+      "curl | bash",
+      "curl | sh",
+      "wget | bash",
+      "wget | sh",
+      "eval(fetch",
+      "base64 -d | bash",
+      "base64 -d | sh",
+      "eval $("
+    ]
+  },
+  "solanaFit": {
+    "coreKeywords": [
+      "@solana/web3.js", "@solana/kit", "@solana/spl-token",
+      "anchor", "pinocchio", "seahorse",
+      "instruction", "blockhash",
+      "lamport", "SPL token", "SPL",
+      "PDA", "Program Derived Address",
+      "CPI", "Cross-Program Invocation"
+    ],
+    "testingKeywords": [
+      "LiteSVM", "Mollusk", "Surfpool", "Bankrun",
+      "solana-test-validator", "anchor test"
+    ],
+    "defiKeywords": [
+      "Jupiter", "Raydium", "Orca", "Meteora",
+      "Marinade", "Jito", "Squads",
+      "Helius", "Triton", "QuickNode",
+      "Metaplex", "Tensor", "Magic Eden",
+      "CLMM", "Whirlpool", "DLMM",
+      "liquidity pool", "AMM",
+      "staking", "validator", "epoch"
+    ],
+    "infraKeywords": [
+      "RPC", "gRPC",
+      "Solana Pay", "Blinks",
+      "token extensions", "Token-2022",
+      "compressed NFT", "cNFT",
+      "Geyser", "AccountsDB"
+    ],
+    "highFitThreshold": 5,
+    "mediumFitThreshold": 2,
+    "lowFitThreshold": 1
+  }
+}

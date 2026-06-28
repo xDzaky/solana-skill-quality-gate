@@ -1,0 +1,24 @@
+{
+  "name": "solana-token-monitor",
+  "version": "1.0.0",
+  "timestamp": "2026-06-28T00:00:00.000Z",
+  "score": {
+    "total": 87,
+    "max": 100,
+    "breakdown": {
+      "structure": { "score": 18, "max": 20, "findings": ["Minor: consider adding package.json with test script"] },
+      "progressive": { "score": 20, "max": 20, "findings": [] },
+      "safety": { "score": 25, "max": 25, "findings": [] },
+      "solanaFit": { "score": 14, "max": 15, "findings": ["Strong Solana ecosystem integration detected"] },
+      "installReady": { "score": 7, "max": 10, "findings": ["No package.json test script found"] },
+      "docs": { "score": 3, "max": 10, "findings": ["No examples directory found"] }
+    }
+  },
+  "rating": "Excellent",
+  "risks": [],
+  "recommendations": {
+    "mustFix": [],
+    "shouldFix": ["Add package.json with test command", "Add examples directory"],
+    "niceToHave": ["Add CI workflow"]
+  }
+}
