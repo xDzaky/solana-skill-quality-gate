@@ -288,7 +288,7 @@ solana-skill-quality-gate/
 | Item | Link |
 |------|------|
 | **Repo** | https://github.com/xDzaky/solana-skill-quality-gate |
-| **PR to solanabr/skill-bounty** | *(submit PR after final push)* |
+| **PR to solanabr/skill-bounty** | https://github.com/solanabr/skill-bounty/pull/89 |
 | **CI Run** | https://github.com/xDzaky/solana-skill-quality-gate/actions |
 | **Example Report** | [audit-report-self.md](./examples/audit-report-self.md) |
 | **SARIF Example** | [bad-skill.sarif](./examples/bad-skill.sarif) |
