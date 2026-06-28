@@ -1,10 +1,20 @@
 # Skill Audit Report
 
 **Skill**: SUPER_AWESOME_SOLANA_SKILL_2026!!!!
-**Audited**: 2026-06-28T09:37:00.751Z
-**Scanner**: solana-skill-quality-gate v1.0.0
-**Overall Score**: 44/100
-**Rating**: Fair
+**Audited**: 2026-06-28T11:35:54.163Z
+**Scanner**: solana-skill-quality-gate v2.0.0
+**Raw Score**: 44/100
+**Final Score**: 29/100 (policy-adjusted)
+**Rating**: Poor
+
+> 🚫 **Policy caps applied**: Critical findings automatically cap the maximum achievable score.
+
+| Policy | Cap |
+|--------|-----|
+| Prompt injection detected | max 39 |
+| Secret collection detected | max 39 |
+| Opaque/suspicious execution detected | max 29 |
+| Priority manipulation detected | max 49 |
 
 > ⚠️ This is an automated assessment. Always perform manual review before installing or merging skills from untrusted sources.
 

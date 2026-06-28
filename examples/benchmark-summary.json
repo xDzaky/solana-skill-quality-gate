@@ -1,0 +1,94 @@
+{
+  "benchmark": "local-fixtures",
+  "date": "2026-06-28",
+  "scanner": "v2.0.0",
+  "samples": 5,
+  "results": [
+    {
+      "name": "solana-fast-deploy",
+      "rawTotal": 62,
+      "total": 29,
+      "rating": "Poor",
+      "policyCaps": [
+        "Secret collection detected",
+        "Opaque/suspicious execution detected",
+        "Suspicious install script (network/eval)"
+      ],
+      "breakdown": {
+        "structure": 20,
+        "progressive": 17,
+        "safety": 15,
+        "solanaFit": 5,
+        "installReady": 5,
+        "docs": 0
+      }
+    },
+    {
+      "name": "solana-nft-verifier",
+      "rawTotal": 91,
+      "total": 91,
+      "rating": "Excellent",
+      "policyCaps": [],
+      "breakdown": {
+        "structure": 20,
+        "progressive": 20,
+        "safety": 25,
+        "solanaFit": 12,
+        "installReady": 7,
+        "docs": 7
+      }
+    },
+    {
+      "name": "universal-crypto-toolkit",
+      "rawTotal": 62,
+      "total": 59,
+      "rating": "Fair",
+      "policyCaps": [
+        "No Solana-specific content"
+      ],
+      "breakdown": {
+        "structure": 19,
+        "progressive": 15,
+        "safety": 25,
+        "solanaFit": 0,
+        "installReady": 3,
+        "docs": 0
+      }
+    },
+    {
+      "name": "solana-defi-toolkit",
+      "rawTotal": 78,
+      "total": 78,
+      "rating": "Good",
+      "policyCaps": [],
+      "breakdown": {
+        "structure": 20,
+        "progressive": 15,
+        "safety": 25,
+        "solanaFit": 15,
+        "installReady": 3,
+        "docs": 0
+      }
+    },
+    {
+      "name": "solana-rpc-monitor",
+      "rawTotal": 87,
+      "total": 87,
+      "rating": "Excellent",
+      "policyCaps": [],
+      "breakdown": {
+        "structure": 19,
+        "progressive": 17,
+        "safety": 25,
+        "solanaFit": 15,
+        "installReady": 7,
+        "docs": 4
+      }
+    }
+  ],
+  "summary": {
+    "avg_raw": 76.0,
+    "avg_final": 68.8,
+    "policy_capped": 2
+  }
+}

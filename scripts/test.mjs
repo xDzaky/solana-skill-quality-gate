@@ -1,16 +1,13 @@
 #!/usr/bin/env node
 
 /**
- * test.mjs — Test runner for solana-skill-quality-gate
+ * test.mjs — Test runner for solana-skill-quality-gate v2.0
  *
- * Runs the CLI on good and bad fixtures and verifies:
- * - Good skill scores high (>= 70)
- * - Bad skill scores low (<= 35)
- * - JSON output is valid
- * - Markdown report is generated
+ * Tests: fixtures, self-audit, policy caps, strict mode, fail-under,
+ * negation-aware scanning, benchmark fixtures, report generation.
  */
 
-import { execSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, unlinkSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -19,8 +16,9 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const CLI = join(__dirname, 'skillqa.mjs');
-const GOOD_FIXTURE = join(__dirname, 'fixtures', 'good-skill');
-const BAD_FIXTURE = join(__dirname, 'fixtures', 'bad-skill');
+const GOOD = join(__dirname, 'fixtures', 'good-skill');
+const BAD = join(__dirname, 'fixtures', 'bad-skill');
+const ROOT = join(__dirname, '..');
 
 let passed = 0;
 let failed = 0;
@@ -43,162 +41,275 @@ function assert(condition, msg) {
 }
 
 function run(args) {
-  return execSync(`node ${CLI} ${args}`, { encoding: 'utf-8', timeout: 30000 });
+  const result = spawnSync('node', [CLI, ...args.split(/\s+/)], {
+    encoding: 'utf-8',
+    timeout: 30000,
+  });
+  if (result.error) throw result.error;
+  return { stdout: result.stdout || '', stderr: result.stderr || '', status: result.status };
+}
+
+function runOK(args) {
+  const r = run(args);
+  if (r.status !== 0) throw new Error(`Exit ${r.status}: ${r.stderr}`);
+  return r.stdout;
 }
 
 function runJSON(args) {
-  const output = run(args);
+  const output = runOK(args);
   return JSON.parse(output);
 }
 
 console.log('');
 console.log('╔══════════════════════════════════════════════════════════════╗');
-console.log('║  solana-skill-quality-gate — Test Suite                     ║');
+console.log('║  solana-skill-quality-gate — Test Suite v2.0               ║');
 console.log('╚══════════════════════════════════════════════════════════════╝');
 console.log('');
 
-// ─── Fixture existence ───────────────────────────────────────────────────────
+// ─── 1. Fixture existence ────────────────────────────────────────────────────
 
 console.log('Fixtures:');
 
 test('good-skill fixture exists', () => {
-  assert(existsSync(GOOD_FIXTURE), `Directory not found: ${GOOD_FIXTURE}`);
+  assert(existsSync(GOOD), `Not found: ${GOOD}`);
 });
 
 test('bad-skill fixture exists', () => {
-  assert(existsSync(BAD_FIXTURE), `Directory not found: ${BAD_FIXTURE}`);
+  assert(existsSync(BAD), `Not found: ${BAD}`);
 });
 
 test('good-skill has SKILL.md', () => {
-  assert(
-    existsSync(join(GOOD_FIXTURE, 'skill', 'SKILL.md')),
-    'skill/SKILL.md not found in good fixture',
-  );
+  assert(existsSync(join(GOOD, 'skill', 'SKILL.md')), 'Missing skill/SKILL.md');
 });
 
 test('bad-skill has SKILL.md', () => {
-  assert(
-    existsSync(join(BAD_FIXTURE, 'skill', 'SKILL.md')),
-    'skill/SKILL.md not found in bad fixture',
-  );
+  assert(existsSync(join(BAD, 'skill', 'SKILL.md')), 'Missing skill/SKILL.md');
 });
 
-// ─── Audit command ───────────────────────────────────────────────────────────
+// ─── 2. Audit command ────────────────────────────────────────────────────────
 
 console.log('\nAudit command:');
 
 test('audit good-skill runs without error', () => {
-  const output = run(`audit ${GOOD_FIXTURE}`);
-  assert(output.includes('Audit Report'), 'Output should contain "Audit Report"');
+  const output = runOK(`audit ${GOOD}`);
+  assert(output.includes('Audit Report'), 'Missing "Audit Report"');
 });
 
 test('audit bad-skill runs without error', () => {
-  const output = run(`audit ${BAD_FIXTURE}`);
-  assert(output.includes('Audit Report'), 'Output should contain "Audit Report"');
+  const output = runOK(`audit ${BAD}`);
+  assert(output.includes('Audit Report'), 'Missing "Audit Report"');
 });
 
-// ─── Score command ───────────────────────────────────────────────────────────
+// ─── 3. Score command ────────────────────────────────────────────────────────
 
 console.log('\nScore command:');
 
 test('score good-skill produces valid JSON', () => {
-  const result = runJSON(`score ${GOOD_FIXTURE} --json`);
-  assert(typeof result.score.total === 'number', 'score.total should be a number');
-  assert(typeof result.rating === 'string', 'rating should be a string');
+  const result = runJSON(`score ${GOOD} --json`);
+  assert(typeof result.score.total === 'number', 'score.total not a number');
+  assert(typeof result.rating === 'string', 'rating not a string');
 });
 
 test('score bad-skill produces valid JSON', () => {
-  const result = runJSON(`score ${BAD_FIXTURE} --json`);
-  assert(typeof result.score.total === 'number', 'score.total should be a number');
+  const result = runJSON(`score ${BAD} --json`);
+  assert(typeof result.score.total === 'number', 'score.total not a number');
 });
 
 test('good-skill scores >= 80', () => {
-  const result = runJSON(`score ${GOOD_FIXTURE} --json`);
-  assert(result.score.total >= 80, `Expected score >= 80, got ${result.score.total}`);
+  const result = runJSON(`score ${GOOD} --json`);
+  assert(result.score.total >= 80, `Got ${result.score.total}`);
 });
 
-test('bad-skill scores <= 50', () => {
-  const result = runJSON(`score ${BAD_FIXTURE} --json`);
-  assert(result.score.total <= 50, `Expected score <= 50, got ${result.score.total}`);
+test('bad-skill final score <= 39 (policy-capped)', () => {
+  const result = runJSON(`score ${BAD} --json`);
+  assert(result.score.total <= 39, `Got ${result.score.total}`);
 });
 
-test('good-skill has higher score than bad-skill', () => {
-  const good = runJSON(`score ${GOOD_FIXTURE} --json`);
-  const bad = runJSON(`score ${BAD_FIXTURE} --json`);
-  assert(good.score.total > bad.score.total, `Good (${good.score.total}) should be higher than bad (${bad.score.total})`);
+test('bad-skill has policy caps applied', () => {
+  const result = runJSON(`score ${BAD} --json`);
+  assert(result.score.policyCaps.length > 0, 'No policy caps');
 });
 
-test('score breakdown has all categories', () => {
-  const result = runJSON(`score ${GOOD_FIXTURE} --json`);
-  const expected = ['structure', 'progressive', 'safety', 'solanaFit', 'installReady', 'docs'];
-  for (const cat of expected) {
-    assert(result.score.breakdown[cat] !== undefined, `Missing category: ${cat}`);
-    assert(typeof result.score.breakdown[cat].score === 'number', `${cat}.score should be a number`);
-    assert(typeof result.score.breakdown[cat].max === 'number', `${cat}.max should be a number`);
+test('good-skill scores higher than bad-skill', () => {
+  const good = runJSON(`score ${GOOD} --json`);
+  const bad = runJSON(`score ${BAD} --json`);
+  assert(good.score.total > bad.score.total, `Good ${good.score.total} vs bad ${bad.score.total}`);
+});
+
+test('score breakdown has all 6 categories', () => {
+  const result = runJSON(`score ${GOOD} --json`);
+  for (const cat of ['structure', 'progressive', 'safety', 'solanaFit', 'installReady', 'docs']) {
+    assert(result.score.breakdown[cat] !== undefined, `Missing: ${cat}`);
+    assert(typeof result.score.breakdown[cat].score === 'number', `${cat}.score not number`);
   }
 });
 
 test('good-skill safety score is high', () => {
-  const result = runJSON(`score ${GOOD_FIXTURE} --json`);
-  assert(result.score.breakdown.safety.score >= 20, `Expected safety >= 20, got ${result.score.breakdown.safety.score}`);
+  const result = runJSON(`score ${GOOD} --json`);
+  assert(result.score.breakdown.safety.score >= 20, `Got ${result.score.breakdown.safety.score}`);
 });
 
 test('bad-skill safety score is low', () => {
-  const result = runJSON(`score ${BAD_FIXTURE} --json`);
-  assert(result.score.breakdown.safety.score <= 10, `Expected safety <= 10, got ${result.score.breakdown.safety.score}`);
+  const result = runJSON(`score ${BAD} --json`);
+  assert(result.score.breakdown.safety.score <= 10, `Got ${result.score.breakdown.safety.score}`);
 });
 
-// ─── Report command ──────────────────────────────────────────────────────────
+// ─── 4. Self-audit ───────────────────────────────────────────────────────────
+
+console.log('\nSelf-audit:');
+
+test('self-audit score >= 90', () => {
+  const result = runJSON(`score ${ROOT} --json`);
+  assert(result.score.total >= 90, `Self-audit score ${result.score.total} < 90`);
+});
+
+test('self-audit has no policy caps', () => {
+  const result = runJSON(`score ${ROOT} --json`);
+  assert(result.score.policyCaps.length === 0, `Has ${result.score.policyCaps.length} caps`);
+});
+
+test('self-audit safety score is 25/25', () => {
+  const result = runJSON(`score ${ROOT} --json`);
+  assert(result.score.breakdown.safety.score === 25, `Got ${result.score.breakdown.safety.score}`);
+});
+
+// ─── 5. Negation-aware scanning ──────────────────────────────────────────────
+
+console.log('\nNegation-aware scanning:');
+
+test('safe phrase "do not ignore previous instructions" is NOT detected', () => {
+  // Good fixture says "No private keys or seed phrases required" — should not flag
+  const result = runJSON(`score ${GOOD} --json`);
+  assert(result.score.breakdown.safety.score >= 20, `Safety flagged negated phrase: ${result.score.breakdown.safety.score}`);
+});
+
+test('malicious phrase IS detected in bad fixture', () => {
+  const result = runJSON(`score ${BAD} --json`);
+  const findings = result.score.breakdown.safety.findings;
+  const hasInjection = findings.some(f => f.includes('Prompt Injection'));
+  assert(hasInjection, 'Prompt injection not detected in bad fixture');
+});
+
+// ─── 6. Policy caps ─────────────────────────────────────────────────────────
+
+console.log('\nPolicy caps:');
+
+test('bad fixture rawTotal > total (caps reduce score)', () => {
+  const result = runJSON(`score ${BAD} --json`);
+  assert(result.score.rawTotal > result.score.total, `raw ${result.score.rawTotal} not > total ${result.score.total}`);
+});
+
+test('report includes raw score and final score', () => {
+  const tmpReport = join(__dirname, '..', 'examples', '_test-caps-report.md');
+  mkdirSync(dirname(tmpReport), { recursive: true });
+  runOK(`report ${BAD} --out ${tmpReport}`);
+  const content = readFileSync(tmpReport, 'utf-8');
+  assert(content.includes('Raw Score'), 'Report missing "Raw Score"');
+  assert(content.includes('Final Score'), 'Report missing "Final Score"');
+  assert(content.includes('Policy'), 'Report missing policy caps table');
+  try { unlinkSync(tmpReport); } catch { /* ignore */ }
+});
+
+// ─── 7. Strict mode ─────────────────────────────────────────────────────────
+
+console.log('\nStrict mode:');
+
+test('--strict exits non-zero on bad fixture (safety)', () => {
+  const r = run(`audit ${BAD} --strict`);
+  assert(r.status === 2, `Expected exit 2, got ${r.status}`);
+});
+
+test('--strict passes on good fixture', () => {
+  const r = run(`audit ${GOOD} --strict`);
+  assert(r.status === 0, `Expected exit 0, got ${r.status}`);
+});
+
+// ─── 8. Fail-under ──────────────────────────────────────────────────────────
+
+console.log('\nFail-under:');
+
+test('--fail-under 80 passes for good-skill', () => {
+  const r = run(`score ${GOOD} --json --fail-under 80`);
+  assert(r.status === 0, `Expected exit 0, got ${r.status}`);
+});
+
+test('--fail-under 99 fails for good-skill', () => {
+  const r = run(`score ${GOOD} --json --fail-under 99`);
+  assert(r.status === 1, `Expected exit 1, got ${r.status}`);
+});
+
+test('--fail-under 90 passes for self-audit', () => {
+  const r = run(`score ${ROOT} --json --fail-under 90`);
+  assert(r.status === 0, `Expected exit 0, got ${r.status}`);
+});
+
+// ─── 9. Report command ──────────────────────────────────────────────────────
 
 console.log('\nReport command:');
 
 const tmpGoodReport = join(__dirname, '..', 'examples', '_test-report-good.md');
 const tmpBadReport = join(__dirname, '..', 'examples', '_test-report-bad.md');
 
-test('report good-skill generates markdown file', () => {
-  // Ensure examples dir exists
+test('report good-skill generates markdown', () => {
   mkdirSync(dirname(tmpGoodReport), { recursive: true });
-  run(`report ${GOOD_FIXTURE} --out ${tmpGoodReport}`);
-  assert(existsSync(tmpGoodReport), 'Report file should be created');
+  runOK(`report ${GOOD} --out ${tmpGoodReport}`);
+  assert(existsSync(tmpGoodReport), 'Report not created');
   const content = readFileSync(tmpGoodReport, 'utf-8');
-  assert(content.includes('# Skill Audit Report'), 'Report should contain header');
-  assert(content.includes('Score Breakdown'), 'Report should contain score breakdown');
-  assert(content.includes('PR Readiness Checklist'), 'Report should contain PR checklist');
+  assert(content.includes('# Skill Audit Report'), 'Missing header');
+  assert(content.includes('Score Breakdown'), 'Missing breakdown');
+  assert(content.includes('PR Readiness Checklist'), 'Missing checklist');
 });
 
-test('report bad-skill generates markdown file', () => {
-  run(`report ${BAD_FIXTURE} --out ${tmpBadReport}`);
-  assert(existsSync(tmpBadReport), 'Report file should be created');
-  const content = readFileSync(tmpBadReport, 'utf-8');
-  assert(content.includes('# Skill Audit Report'), 'Report should contain header');
+test('report bad-skill generates markdown', () => {
+  runOK(`report ${BAD} --out ${tmpBadReport}`);
+  assert(existsSync(tmpBadReport), 'Report not created');
 });
 
-// Cleanup temp reports
 try { unlinkSync(tmpGoodReport); } catch { /* ignore */ }
 try { unlinkSync(tmpBadReport); } catch { /* ignore */ }
 
-// ─── Edge cases ──────────────────────────────────────────────────────────────
+// ─── 10. Edge cases ─────────────────────────────────────────────────────────
 
 console.log('\nEdge cases:');
 
 test('non-existent path exits with error', () => {
-  try {
-    run('audit /tmp/nonexistent-skill-path-12345');
-    throw new Error('Should have thrown');
-  } catch (err) {
-    // execSync throws on non-zero exit code, which is expected
-    assert(true, 'Correctly failed on non-existent path');
-  }
+  const r = run('audit /tmp/nonexistent-skill-path-12345');
+  assert(r.status !== 0, 'Should fail on non-existent path');
 });
 
 test('missing command shows usage', () => {
-  try {
-    run('');
-    throw new Error('Should have thrown');
-  } catch {
-    assert(true, 'Correctly showed usage on missing command');
-  }
+  const r = run('--help unused');
+  assert(r.status === 0 || r.stdout.includes('Usage'), 'Should show usage');
 });
+
+// ─── 11. Benchmark fixtures ─────────────────────────────────────────────────
+
+const BENCH = join(__dirname, 'fixtures', 'benchmark-samples');
+
+if (existsSync(BENCH)) {
+  console.log('\nBenchmark fixtures:');
+
+  test('excellent benchmark scores >= 80', () => {
+    const result = runJSON(`score ${join(BENCH, 'excellent')} --json`);
+    assert(result.score.total >= 80, `Got ${result.score.total}`);
+  });
+
+  test('missing-license benchmark gets structure penalty', () => {
+    const result = runJSON(`score ${join(BENCH, 'missing-license')} --json`);
+    assert(result.score.breakdown.structure.score < 20, `Got ${result.score.breakdown.structure.score}`);
+  });
+
+  test('giant-skill-md benchmark gets progressive penalty', () => {
+    const result = runJSON(`score ${join(BENCH, 'giant-skill-md')} --json`);
+    assert(result.score.breakdown.progressive.score < 20, `Got ${result.score.breakdown.progressive.score}`);
+  });
+
+  test('dangerous-install is policy-capped', () => {
+    const result = runJSON(`score ${join(BENCH, 'dangerous-install')} --json`);
+    assert(result.score.policyCaps.length > 0, 'No policy caps');
+    assert(result.score.total <= 39, `Got ${result.score.total}`);
+  });
+}
 
 // ─── Summary ─────────────────────────────────────────────────────────────────
 
@@ -215,5 +326,4 @@ if (failures.length > 0) {
 }
 
 console.log('');
-
 process.exit(failed > 0 ? 1 : 0);

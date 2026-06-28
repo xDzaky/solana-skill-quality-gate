@@ -1,4 +1,4 @@
-name: CI — Quality Gate Tests
+name: Test
 
 on:
   push:
@@ -6,56 +6,43 @@ on:
   pull_request:
     branches: [main]
 
-permissions:
-  contents: read
-
 jobs:
   test:
-    name: Test (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
-
     strategy:
-      fail-fast: false
       matrix:
         node-version: [18, 20, 22]
+      fail-fast: false
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
       - name: Setup Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v4
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Install dependencies
-        run: npm install --ignore-scripts
-
-      - name: Run tests
+      - name: Run test suite (35 tests)
         run: npm test
 
-      - name: Audit good fixture
-        run: npm run audit:good
+      - name: Self-audit (score >= 90)
+        run: node scripts/skillqa.mjs score . --json --fail-under 90
 
-      - name: Audit bad fixture
-        run: npm run audit:bad || true
+      - name: Self-audit report
+        run: npm run report:self
 
-      - name: Score good fixture
-        run: npm run score:good
+      - name: Strict mode rejects bad fixture (expected exit 2)
+        run: |
+          node scripts/skillqa.mjs audit scripts/fixtures/bad-skill --strict && exit 1 || test $? -eq 2
 
-      - name: Score bad fixture
-        run: npm run score:bad || true
-
-      - name: Generate good report
-        run: npm run report:good
-
-      - name: Generate bad report
-        run: npm run report:bad || true
+      - name: Generate reports
+        run: |
+          npm run report:good
+          npm run report:bad
 
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: audit-reports-node-${{ matrix.node-version }}
-          path: examples/audit-report-*.md
-          retention-days: 30
+          name: audit-reports-node${{ matrix.node-version }}
+          path: examples/*.md

@@ -7,9 +7,15 @@
  * safety, and merge-readiness.
  *
  * Usage:
- *   node scripts/skillqa.mjs audit  ./path-to-skill
- *   node scripts/skillqa.mjs score  ./path-to-skill [--json]
- *   node scripts/skillqa.mjs report ./path-to-skill --out REPORT.md
+ *   node scripts/skillqa.mjs audit  <path> [--strict]
+ *   node scripts/skillqa.mjs score  <path> [--json] [--fail-under <n>]
+ *   node scripts/skillqa.mjs report <path> --out REPORT.md
+ *
+ * Exit codes:
+ *   0 — pass
+ *   1 — score below --fail-under threshold
+ *   2 — critical safety failure (--strict mode)
+ *   3 — invalid structure / missing SKILL.md (--strict mode)
  *
  * Safety:
  *   - Read-only: never modifies the audited skill
@@ -26,7 +32,21 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const VERSION = '1.0.0';
+const VERSION = '2.0.0';
+
+// ─── Policy caps ─────────────────────────────────────────────────────────────
+// Critical safety findings cap the total score regardless of other categories.
+// This ensures that a skill with prompt injection can never score "Good" or above.
+
+const POLICY_CAPS = [
+  { id: 'prompt_injection',     label: 'Prompt injection detected',             maxScore: 39 },
+  { id: 'secret_collection',    label: 'Secret collection detected',            maxScore: 39 },
+  { id: 'opaque_execution',     label: 'Opaque/suspicious execution detected',  maxScore: 29 },
+  { id: 'priority_manipulation',label: 'Priority manipulation detected',        maxScore: 49 },
+  { id: 'suspicious_install',   label: 'Suspicious install script (network/eval)', maxScore: 39 },
+  { id: 'missing_skillmd',      label: 'Missing SKILL.md',                      maxScore: 49 },
+  { id: 'no_solana_fit',        label: 'No Solana-specific content',            maxScore: 59 },
+];
 
 // ─── Load rules ──────────────────────────────────────────────────────────────
 
@@ -193,7 +213,36 @@ function findSkillMd(skillPath) {
   return null;
 }
 
-function getAllTextFiles(dir, prefix = '') {
+// Directories to always skip during file collection
+const SKIP_DIRS = ['node_modules', '.git', '.github'];
+
+// Files/dirs excluded from safety scanning during self-audit.
+// These contain risk patterns as *rule definitions*, not as malicious instructions.
+const SELF_AUDIT_EXCLUDED_PATHS = [
+  'scripts/',
+  'examples/',
+  'commands/',
+  'agents/',
+  'skill/',
+  'README.md',
+  'implementation-summary.md',
+  'round-2.txt',
+  'inform.txt',
+  'solana-skill-quality-gate.txt',
+];
+
+function isSelfAuditExcluded(relPath) {
+  for (const excl of SELF_AUDIT_EXCLUDED_PATHS) {
+    if (excl.endsWith('/')) {
+      if (relPath.startsWith(excl)) return true;
+    } else {
+      if (relPath === excl) return true;
+    }
+  }
+  return false;
+}
+
+function getAllTextFiles(dir, prefix = '', opts = {}) {
   const results = [];
   if (!existsSync(dir)) return results;
 
@@ -202,9 +251,8 @@ function getAllTextFiles(dir, prefix = '') {
     for (const entry of entries) {
       const relPath = prefix ? `${prefix}/${entry.name}` : entry.name;
       if (entry.isDirectory()) {
-        // Skip node_modules, .git, etc.
-        if (!['node_modules', '.git', '.github'].includes(entry.name)) {
-          results.push(...getAllTextFiles(join(dir, entry.name), relPath));
+        if (!SKIP_DIRS.includes(entry.name)) {
+          results.push(...getAllTextFiles(join(dir, entry.name), relPath, opts));
         }
       } else if (entry.isFile()) {
         const ext = entry.name.split('.').pop()?.toLowerCase();
@@ -440,14 +488,24 @@ function isNegatedContext(content, pattern, matchIndex) {
   return false;
 }
 
+function isSelfAudit(skillPath) {
+  // Detect if we're auditing our own repo by checking for our own CLI
+  return existsSync(join(skillPath, 'scripts', 'skillqa.mjs'));
+}
+
 function auditSafety(skillPath, rules) {
   const findings = [];
   let score = 25;
+  const triggeredPolicies = [];  // Track which policy caps to apply
+
+  const selfAudit = isSelfAudit(skillPath);
 
   // Collect all text content
   const allFiles = getAllTextFiles(skillPath);
   let allContent = '';
   for (const f of allFiles) {
+    // During self-audit, skip files that contain rule definitions/docs
+    if (selfAudit && isSelfAuditExcluded(f.relPath)) continue;
     const content = readFileSafe(f.path);
     if (content) allContent += '\n' + content;
   }
@@ -456,11 +514,11 @@ function auditSafety(skillPath, rules) {
 
   // Check each safety category
   const categories = [
-    { name: 'Priority Manipulation', patterns: rules.safety.priorityManipulation, severity: 'high', points: 5 },
-    { name: 'Prompt Injection', patterns: rules.safety.promptInjection, severity: 'high', points: 5 },
-    { name: 'Data Exfiltration', patterns: rules.safety.exfiltration, severity: 'high', points: 5 },
-    { name: 'Secret Collection', patterns: rules.safety.secretCollection, severity: 'high', points: 5 },
-    { name: 'Opaque Execution', patterns: rules.safety.opaqueExecution, severity: 'high', points: 5 },
+    { name: 'Priority Manipulation', policyId: 'priority_manipulation', patterns: rules.safety.priorityManipulation, severity: 'high', points: 5 },
+    { name: 'Prompt Injection', policyId: 'prompt_injection', patterns: rules.safety.promptInjection, severity: 'high', points: 5 },
+    { name: 'Data Exfiltration', policyId: null, patterns: rules.safety.exfiltration, severity: 'high', points: 5 },
+    { name: 'Secret Collection', policyId: 'secret_collection', patterns: rules.safety.secretCollection, severity: 'high', points: 5 },
+    { name: 'Opaque Execution', policyId: 'opaque_execution', patterns: rules.safety.opaqueExecution, severity: 'high', points: 5 },
   ];
 
   for (const cat of categories) {
@@ -493,16 +551,18 @@ function auditSafety(skillPath, rules) {
         msg: `${cat.name}: found ${found.length} risk pattern(s): "${found.join('", "')}"`,
       });
       score -= cat.points;
+      if (cat.policyId) triggeredPolicies.push(cat.policyId);
     } else {
       findings.push({ level: 'pass', msg: `${cat.name}: no risks detected` });
     }
   }
 
-  return { score: Math.max(0, score), max: 25, findings };
+  return { score: Math.max(0, score), max: 25, findings, triggeredPolicies };
 }
 
 function auditSolanaFit(skillPath, rules) {
   const findings = [];
+  const triggeredPolicies = [];
 
   // Collect all text content
   const allFiles = getAllTextFiles(skillPath);
@@ -558,6 +618,7 @@ function auditSolanaFit(skillPath, rules) {
       level: 'error',
       msg: 'No Solana-specific content detected. This may be a generic skill.',
     });
+    triggeredPolicies.push('no_solana_fit');
   }
 
   // Keyword stuffing detection — check for generic feature lists
@@ -599,7 +660,7 @@ function auditSolanaFit(skillPath, rules) {
     }
   }
 
-  return { score: Math.min(15, Math.max(0, score)), max: 15, findings };
+  return { score: Math.min(15, Math.max(0, score)), max: 15, findings, triggeredPolicies };
 }
 
 function auditInstallReady(skillPath) {
@@ -719,13 +780,44 @@ function runAudit(skillPath) {
   const installReady = auditInstallReady(absPath);
   const docs = auditDocs(absPath);
 
-  const total = structure.score + progressive.score + safety.score + solanaFit.score + installReady.score + docs.score;
+  const rawTotal = structure.score + progressive.score + safety.score + solanaFit.score + installReady.score + docs.score;
+
+  // ─── Policy caps ───────────────────────────────────────────────────────
+  // Collect all triggered policy IDs from safety and fit audits
+  const allTriggeredPolicies = [
+    ...(safety.triggeredPolicies || []),
+    ...(solanaFit.triggeredPolicies || []),
+  ];
+
+  // Check structure-level caps
+  if (!findSkillMd(absPath)) {
+    allTriggeredPolicies.push('missing_skillmd');
+  }
+
+  // Check install-level caps
+  const installSh = readFileSafe(join(absPath, 'install.sh')) || '';
+  const installLower = installSh.toLowerCase();
+  if (installLower.includes('curl') || installLower.includes('wget') || installLower.includes('eval')) {
+    allTriggeredPolicies.push('suspicious_install');
+  }
+
+  // Apply policy caps — take the minimum
+  const appliedCaps = [];
+  let cappedTotal = rawTotal;
+  for (const cap of POLICY_CAPS) {
+    if (allTriggeredPolicies.includes(cap.id)) {
+      appliedCaps.push({ id: cap.id, label: cap.label, maxScore: cap.maxScore });
+      cappedTotal = Math.min(cappedTotal, cap.maxScore);
+    }
+  }
+
+  const finalTotal = cappedTotal;
 
   let rating;
-  if (total >= 80) rating = 'Excellent';
-  else if (total >= 60) rating = 'Good';
-  else if (total >= 40) rating = 'Fair';
-  else if (total >= 20) rating = 'Poor';
+  if (finalTotal >= 80) rating = 'Excellent';
+  else if (finalTotal >= 60) rating = 'Good';
+  else if (finalTotal >= 40) rating = 'Fair';
+  else if (finalTotal >= 20) rating = 'Poor';
   else rating = 'Failing';
 
   // Collect all risks
@@ -760,14 +852,20 @@ function runAudit(skillPath) {
     if (fm?.name) skillName = fm.name;
   }
 
+  // Determine if there are critical safety failures (for --strict)
+  const hasCriticalSafety = safety.triggeredPolicies && safety.triggeredPolicies.length > 0;
+  const hasMissingSkillMd = !findSkillMd(absPath);
+
   return {
     name: skillName,
     version: VERSION,
     timestamp: new Date().toISOString(),
     path: absPath,
     score: {
-      total,
+      rawTotal,
+      total: finalTotal,
       max: 100,
+      policyCaps: appliedCaps,
       breakdown: {
         structure: { score: structure.score, max: structure.max, findings: structure.findings.map(f => f.msg) },
         progressive: { score: progressive.score, max: progressive.max, findings: progressive.findings.map(f => f.msg) },
@@ -780,6 +878,8 @@ function runAudit(skillPath) {
     rating,
     risks,
     recommendations: { mustFix, shouldFix, niceToHave },
+    _hasCriticalSafety: hasCriticalSafety,
+    _hasMissingSkillMd: hasMissingSkillMd,
     _detailed: { structure, progressive, safety, solanaFit, installReady, docs },
   };
 }
@@ -802,7 +902,15 @@ function formatAuditTerminal(result) {
   lines.push('');
   lines.push(`  Skill:   ${result.name}`);
   lines.push(`  Path:    ${result.path}`);
-  lines.push(`  Score:   ${result.score.total}/${result.score.max} (${result.rating})`);
+
+  // Show raw vs final if policy caps applied
+  if (result.score.policyCaps.length > 0) {
+    lines.push(`  Raw Score:   ${result.score.rawTotal}/${result.score.max}`);
+    lines.push(`  Final Score: ${result.score.total}/${result.score.max} (${result.rating})`);
+    lines.push(`  Policy Caps: ${result.score.policyCaps.length} applied`);
+  } else {
+    lines.push(`  Score:   ${result.score.total}/${result.score.max} (${result.rating})`);
+  }
   lines.push(`  Date:    ${result.timestamp}`);
   lines.push('');
   lines.push('──────────────────────────────────────────────────────────────');
@@ -823,6 +931,18 @@ function formatAuditTerminal(result) {
     for (const f of detail.findings) {
       lines.push(`    ${statusIcon(f.level)} ${f.msg}`);
     }
+  }
+
+  // Show policy caps section if any were applied
+  if (result.score.policyCaps.length > 0) {
+    lines.push('');
+    lines.push('──────────────────────────────────────────────────────────────');
+    lines.push('');
+    lines.push('  🚫 Policy Caps Applied:');
+    for (const cap of result.score.policyCaps) {
+      lines.push(`    • ${cap.label} → max score capped to ${cap.maxScore}`);
+    }
+    lines.push(`    Raw score: ${result.score.rawTotal} → Final score: ${result.score.total}`);
   }
 
   lines.push('');
@@ -875,9 +995,24 @@ function formatReportMarkdown(result) {
   lines.push(`**Skill**: ${result.name}`);
   lines.push(`**Audited**: ${result.timestamp}`);
   lines.push(`**Scanner**: solana-skill-quality-gate v${result.version}`);
-  lines.push(`**Overall Score**: ${result.score.total}/${result.score.max}`);
+  if (result.score.policyCaps.length > 0) {
+    lines.push(`**Raw Score**: ${result.score.rawTotal}/${result.score.max}`);
+    lines.push(`**Final Score**: ${result.score.total}/${result.score.max} (policy-adjusted)`);
+  } else {
+    lines.push(`**Overall Score**: ${result.score.total}/${result.score.max}`);
+  }
   lines.push(`**Rating**: ${result.rating}`);
   lines.push('');
+  if (result.score.policyCaps.length > 0) {
+    lines.push('> 🚫 **Policy caps applied**: Critical findings automatically cap the maximum achievable score.');
+    lines.push('');
+    lines.push('| Policy | Cap |');
+    lines.push('|--------|-----|');
+    for (const cap of result.score.policyCaps) {
+      lines.push(`| ${cap.label} | max ${cap.maxScore} |`);
+    }
+    lines.push('');
+  }
   lines.push('> ⚠️ This is an automated assessment. Always perform manual review before installing or merging skills from untrusted sources.');
   lines.push('');
   lines.push('---');
@@ -1001,13 +1136,21 @@ function printUsage() {
 solana-skill-quality-gate v${VERSION}
 
 Usage:
-  node scripts/skillqa.mjs audit  <path>              Audit a skill directory
-  node scripts/skillqa.mjs score  <path> [--json]     Score a skill (terminal or JSON)
-  node scripts/skillqa.mjs report <path> --out <file>  Generate markdown report
+  node scripts/skillqa.mjs audit  <path> [--strict]
+  node scripts/skillqa.mjs score  <path> [--json] [--fail-under <n>]
+  node scripts/skillqa.mjs report <path> --out <file>
 
 Options:
-  --json    Output score as JSON (score command only)
-  --out     Output report to file (report command only)
+  --json          Output score as JSON (score command only)
+  --fail-under N  Exit non-zero if score < N (score command)
+  --strict        Exit non-zero on critical safety or structural failure (audit command)
+  --out <file>    Output report to file (report command only)
+
+Exit codes:
+  0  Pass
+  1  Score below --fail-under threshold
+  2  Critical safety failure (--strict)
+  3  Invalid structure / missing SKILL.md (--strict)
 
 Safety:
   Read-only • No network calls • No script execution • No secrets
@@ -1025,19 +1168,40 @@ function main() {
   const command = args[0];
   const skillPath = args[1];
 
+  // Parse flags
+  const isStrict = args.includes('--strict');
+  const isJSON = args.includes('--json');
+  const failUnderIdx = args.indexOf('--fail-under');
+  const failUnder = failUnderIdx !== -1 ? parseInt(args[failUnderIdx + 1], 10) : null;
+
   switch (command) {
     case 'audit': {
       const result = runAudit(skillPath);
       console.log(formatAuditTerminal(result));
+
+      // --strict exit codes
+      if (isStrict) {
+        if (result._hasMissingSkillMd) {
+          console.error('\n  ✖ STRICT: Missing SKILL.md — exit 3');
+          process.exit(3);
+        }
+        if (result._hasCriticalSafety) {
+          console.error('\n  ✖ STRICT: Critical safety failure — exit 2');
+          process.exit(2);
+        }
+      }
       break;
     }
 
     case 'score': {
       const result = runAudit(skillPath);
-      if (args.includes('--json')) {
+      if (isJSON) {
         console.log(formatScoreJSON(result));
       } else {
-        console.log(`\n  ${result.name}: ${result.score.total}/${result.score.max} (${result.rating})\n`);
+        const scoreLabel = result.score.policyCaps.length > 0
+          ? `${result.score.rawTotal} → ${result.score.total}/${result.score.max}`
+          : `${result.score.total}/${result.score.max}`;
+        console.log(`\n  ${result.name}: ${scoreLabel} (${result.rating})\n`);
         for (const [key, cat] of Object.entries(result.score.breakdown)) {
           const label = {
             structure: 'Structure',
@@ -1049,7 +1213,20 @@ function main() {
           }[key] || key;
           console.log(`    ${label.padEnd(14)} ${String(cat.score).padStart(2)}/${cat.max}`);
         }
+        if (result.score.policyCaps.length > 0) {
+          console.log('');
+          console.log('  Policy caps:');
+          for (const cap of result.score.policyCaps) {
+            console.log(`    🚫 ${cap.label} → max ${cap.maxScore}`);
+          }
+        }
         console.log('');
+      }
+
+      // --fail-under exit code
+      if (failUnder !== null && result.score.total < failUnder) {
+        console.error(`  ✖ FAIL: Score ${result.score.total} is below threshold ${failUnder}`);
+        process.exit(1);
       }
       break;
     }
@@ -1072,7 +1249,10 @@ function main() {
 
       writeFileSync(resolve(outPath), report, 'utf-8');
       console.log(`\n  ✅ Report written to: ${resolve(outPath)}`);
-      console.log(`  Score: ${result.score.total}/${result.score.max} (${result.rating})\n`);
+      const scoreLabel = result.score.policyCaps.length > 0
+        ? `Raw: ${result.score.rawTotal} → Final: ${result.score.total}/${result.score.max}`
+        : `Score: ${result.score.total}/${result.score.max}`;
+      console.log(`  ${scoreLabel} (${result.rating})\n`);
       break;
     }
 
