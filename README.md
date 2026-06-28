@@ -5,7 +5,7 @@
 A pre-submit quality gate for Solana skill builders — and a review accelerator for [Solana AI Kit](https://github.com/solanabr/solana-ai-kit) maintainers.
 
 **Builders**: audit your own skill before opening a PR. Catch safety issues, structural problems, and quality gaps early.
-**Maintainers**: batch-review 247+ submissions in seconds with deterministic scoring.
+**Maintainers**: batch-review hundreds of submissions in seconds with deterministic scoring.
 
 ---
 
@@ -280,6 +280,19 @@ solana-skill-quality-gate/
 - [Adoption Guide](./examples/adoption-guide.md)
 - [CHANGELOG](./CHANGELOG.md)
 - [SUBMISSION.md](./SUBMISSION.md)
+
+---
+
+## Bounty Submission Links
+
+| Item | Link |
+|------|------|
+| **Repo** | https://github.com/xDzaky/solana-skill-quality-gate |
+| **PR to solanabr/skill-bounty** | *(submit PR after final push)* |
+| **CI Run** | https://github.com/xDzaky/solana-skill-quality-gate/actions |
+| **Example Report** | [audit-report-self.md](./examples/audit-report-self.md) |
+| **SARIF Example** | [bad-skill.sarif](./examples/bad-skill.sarif) |
+| **Batch Report** | [batch-review.md](./examples/batch-review.md) |
 
 ## License
 

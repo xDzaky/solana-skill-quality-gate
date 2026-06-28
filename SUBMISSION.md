@@ -2,7 +2,7 @@
 
 ## One-Paragraph Pitch
 
-**solana-skill-quality-gate** is a pre-submit quality gate for Solana skill builders and a review accelerator for Solana AI Kit maintainers. Builders run `skillqa audit ./my-skill` to catch safety issues, structural problems, and quality gaps before opening a PR — improving their chance of merge. Maintainers use `skillqa batch ./submissions` to triage 247+ submissions in seconds instead of hours. Zero dependencies, read-only, no network calls.
+**solana-skill-quality-gate** is a pre-submit quality gate for Solana skill builders and a review accelerator for Solana AI Kit maintainers. Builders run `skillqa audit ./my-skill` to catch safety issues, structural problems, and quality gaps before opening a PR — improving their chance of merge. Maintainers use `skillqa batch ./submissions` to triage hundreds of submissions in seconds instead of hours. Zero dependencies, read-only, no network calls.
 
 ---
 
@@ -30,7 +30,7 @@ Without a quality gate, the kit risks accumulating technical debt, prompt inject
 
 | Maintainer Problem | How This Solves It |
 |-------------------|-------------------|
-| 247 submissions, manual review is slow | `batch` command scores all in seconds |
+| Hundreds of submissions, manual review is slow | `batch` command scores all in seconds |
 | Unsafe skills slip through | Safety scanner + policy caps |
 | Inconsistent review standards | Deterministic 100-point scoring rubric |
 | CI/CD integration needed | `--strict`, `--fail-under`, SARIF, exit codes |
@@ -123,7 +123,7 @@ A pre-submit quality gate for Solana skill builders, and a review accelerator fo
 
 ### What it does
 - Builders: audit your skill before submitting (`skillqa audit ./my-skill`)
-- Maintainers: batch-review 247+ submissions in seconds (`skillqa batch ./submissions`)
+- Maintainers: batch-review hundreds of submissions in seconds (`skillqa batch ./submissions`)
 - 6-category scoring (100 points): structure, progressive disclosure, safety, Solana fit, install, docs
 - Policy caps for critical findings (prompt injection → max 39)
 - SARIF 2.1.0 for GitHub Code Scanning
