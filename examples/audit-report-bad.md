@@ -1,9 +1,9 @@
 # Skill Audit Report
 
 **Skill**: SUPER_AWESOME_SOLANA_SKILL_2026!!!!
-**Audited**: 2026-06-28T11:35:54.163Z
-**Scanner**: solana-skill-quality-gate v2.0.0
-**Raw Score**: 44/100
+**Audited**: 2026-06-28T14:11:39.830Z
+**Scanner**: solana-skill-quality-gate v3.0.0
+**Raw Score**: 42/100
 **Final Score**: 29/100 (policy-adjusted)
 **Rating**: Poor
 
@@ -27,7 +27,7 @@
 | Structure & Format | 15 | 20 | ⚠️ Warning |
 | Progressive Disclosure | 13 | 20 | ⚠️ Warning |
 | Safety & Supply-Chain | 5 | 25 | ❌ Fail |
-| Solana Ecosystem Fit | 8 | 15 | ⚠️ Warning |
+| Solana Ecosystem Fit | 6 | 15 | ❌ Fail |
 | Install & Test Readiness | 3 | 10 | ❌ Fail |
 | Documentation & Examples | 0 | 10 | ❌ Fail |
 
@@ -65,6 +65,7 @@
 
 - High Solana fit: 5 Solana-specific keywords found: instruction, staking, validator, RPC, gRPC
 - Feature-list stuffing detected: 95 bullet-point features suggest a generic catch-all skill
+- Weak Solana fit evidence: only 0/5 signals. Keywords present but little structural proof.
 
 ### Install & Test Readiness
 
@@ -99,6 +100,7 @@
 
 - Found inline block of 95 lines (recommended: < 50)
 - Feature-list stuffing detected: 95 bullet-point features suggest a generic catch-all skill
+- Weak Solana fit evidence: only 0/5 signals. Keywords present but little structural proof.
 - No package.json found
 - README may not clearly explain the problem being solved
 - README has no usage examples or code blocks

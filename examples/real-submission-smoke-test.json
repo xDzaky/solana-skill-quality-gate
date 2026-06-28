@@ -1,0 +1,16 @@
+{
+  "note": "This is a template. Run the batch command on real submissions to populate this file.",
+  "usage": "node scripts/skillqa.mjs batch submissions --json --out examples/real-submission-smoke-test.json",
+  "template": {
+    "timestamp": "2026-06-28T00:00:00Z",
+    "scanner": "solana-skill-quality-gate v3.0.0",
+    "totalSkills": 0,
+    "summary": {
+      "avgRaw": 0,
+      "avgFinal": 0,
+      "policyCapped": 0
+    },
+    "topRisks": [],
+    "results": []
+  }
+}

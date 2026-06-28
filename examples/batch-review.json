@@ -1,0 +1,586 @@
+{
+  "timestamp": "2026-06-28T14:11:40.942Z",
+  "scanner": "solana-skill-quality-gate v3.0.0",
+  "batchPath": "/home/dzaky/Desktop/coding-project/superteam/solana-skill-quality-gate/scripts/fixtures/benchmark-samples",
+  "totalSkills": 5,
+  "summary": {
+    "avgRaw": 75.2,
+    "avgFinal": 68.4,
+    "policyCapped": 2
+  },
+  "topRisks": [
+    {
+      "risk": "LICENSE file not found",
+      "count": 2
+    },
+    {
+      "risk": "No routing to focused .md files detected (recommended",
+      "count": 2
+    },
+    {
+      "risk": "No install.sh and no install instructions in README",
+      "count": 2
+    },
+    {
+      "risk": "README is very short or empty (65 chars)",
+      "count": 2
+    },
+    {
+      "risk": "Secret Collection",
+      "count": 1
+    }
+  ],
+  "results": [
+    {
+      "name": "solana-fast-deploy",
+      "version": "3.0.0",
+      "timestamp": "2026-06-28T14:11:40.922Z",
+      "score": {
+        "rawTotal": 60,
+        "total": 29,
+        "max": 100,
+        "policyCaps": [
+          {
+            "id": "secret_collection",
+            "label": "Secret collection detected",
+            "maxScore": 39
+          },
+          {
+            "id": "opaque_execution",
+            "label": "Opaque/suspicious execution detected",
+            "maxScore": 29
+          },
+          {
+            "id": "suspicious_install",
+            "label": "Suspicious install script (network/eval)",
+            "maxScore": 39
+          }
+        ],
+        "breakdown": {
+          "structure": {
+            "score": 20,
+            "max": 20,
+            "findings": [
+              "SKILL.md found: ./skill/SKILL.md",
+              "YAML frontmatter present",
+              "name: \"solana-fast-deploy\"",
+              "name format valid",
+              "description present",
+              "description length OK (64 chars)",
+              "README.md found",
+              "LICENSE found (MIT)"
+            ]
+          },
+          "progressive": {
+            "score": 17,
+            "max": 20,
+            "findings": [
+              "SKILL.md is 16 lines (< 200)",
+              "SKILL.md is 302 bytes (< 8192)",
+              "Only routes to 1 focused file (recommended: >= 2)",
+              "No excessively large inline instruction blocks"
+            ]
+          },
+          "safety": {
+            "score": 15,
+            "max": 25,
+            "findings": [
+              "Priority Manipulation: no risks detected",
+              "Prompt Injection: no risks detected",
+              "Data Exfiltration: no risks detected",
+              "Secret Collection: found 1 risk pattern(s): \"seed phrase\"",
+              "Opaque Execution: found 1 risk pattern(s): \"eval $(\""
+            ]
+          },
+          "solanaFit": {
+            "score": 3,
+            "max": 15,
+            "findings": [
+              "Low Solana fit: only 1 keyword(s) found: anchor",
+              "Weak Solana fit evidence: only 1/5 signals. Keywords present but little structural proof."
+            ]
+          },
+          "installReady": {
+            "score": 5,
+            "max": 10,
+            "findings": [
+              "install.sh found",
+              "install.sh contains network/eval commands — review manually",
+              "No package.json found"
+            ]
+          },
+          "docs": {
+            "score": 0,
+            "max": 10,
+            "findings": [
+              "README may not clearly explain the problem being solved",
+              "README has no usage examples or code blocks",
+              "No examples/ directory found",
+              "README is very short or empty (97 chars)"
+            ]
+          }
+        }
+      },
+      "rating": "Poor",
+      "risks": [
+        "Secret Collection: found 1 risk pattern(s): \"seed phrase\"",
+        "Opaque Execution: found 1 risk pattern(s): \"eval $(\"",
+        "README is very short or empty (97 chars)"
+      ],
+      "solanaEvidence": {
+        "workflowEvidence": false,
+        "focusedFilesEvidence": true,
+        "readmeProblemEvidence": false,
+        "examplesEvidence": false,
+        "boundaryEvidence": false
+      },
+      "recommendations": {
+        "mustFix": [
+          "Secret Collection: found 1 risk pattern(s): \"seed phrase\"",
+          "Opaque Execution: found 1 risk pattern(s): \"eval $(\"",
+          "README is very short or empty (97 chars)"
+        ],
+        "shouldFix": [
+          "Only routes to 1 focused file (recommended: >= 2)",
+          "Low Solana fit: only 1 keyword(s) found: anchor",
+          "Weak Solana fit evidence: only 1/5 signals. Keywords present but little structural proof.",
+          "install.sh contains network/eval commands — review manually",
+          "No package.json found",
+          "README may not clearly explain the problem being solved",
+          "README has no usage examples or code blocks",
+          "No examples/ directory found"
+        ],
+        "niceToHave": [
+          "Add examples/ directory with sample outputs",
+          "Add GitHub Actions CI workflow",
+          "Consider adding an agent definition",
+          "Consider adding command definitions"
+        ]
+      }
+    },
+    {
+      "name": "universal-crypto-toolkit",
+      "version": "3.0.0",
+      "timestamp": "2026-06-28T14:11:40.933Z",
+      "score": {
+        "rawTotal": 62,
+        "total": 59,
+        "max": 100,
+        "policyCaps": [
+          {
+            "id": "no_solana_fit",
+            "label": "No Solana-specific content",
+            "maxScore": 59
+          }
+        ],
+        "breakdown": {
+          "structure": {
+            "score": 19,
+            "max": 20,
+            "findings": [
+              "SKILL.md found: ./skill/SKILL.md",
+              "YAML frontmatter present",
+              "name: \"universal-crypto-toolkit\"",
+              "name format valid",
+              "description present",
+              "description length OK (140 chars)",
+              "README.md found",
+              "LICENSE file not found"
+            ]
+          },
+          "progressive": {
+            "score": 15,
+            "max": 20,
+            "findings": [
+              "SKILL.md is 64 lines (< 200)",
+              "SKILL.md is 1274 bytes (< 8192)",
+              "No routing to focused .md files detected (recommended: >= 2)",
+              "No excessively large inline instruction blocks"
+            ]
+          },
+          "safety": {
+            "score": 25,
+            "max": 25,
+            "findings": [
+              "Priority Manipulation: no risks detected",
+              "Prompt Injection: no risks detected",
+              "Data Exfiltration: no risks detected",
+              "Secret Collection: no risks detected",
+              "Opaque Execution: no risks detected"
+            ]
+          },
+          "solanaFit": {
+            "score": 0,
+            "max": 15,
+            "findings": [
+              "No Solana-specific content detected. This may be a generic skill.",
+              "Feature-list stuffing detected: 50 bullet-point features suggest a generic catch-all skill"
+            ]
+          },
+          "installReady": {
+            "score": 3,
+            "max": 10,
+            "findings": [
+              "No install.sh and no install instructions in README",
+              "No package.json found"
+            ]
+          },
+          "docs": {
+            "score": 0,
+            "max": 10,
+            "findings": [
+              "README may not clearly explain the problem being solved",
+              "README has no usage examples or code blocks",
+              "No examples/ directory found",
+              "README is very short or empty (65 chars)"
+            ]
+          }
+        }
+      },
+      "rating": "Fair",
+      "risks": [
+        "LICENSE file not found",
+        "No routing to focused .md files detected (recommended: >= 2)",
+        "No Solana-specific content detected. This may be a generic skill.",
+        "No install.sh and no install instructions in README",
+        "README is very short or empty (65 chars)"
+      ],
+      "solanaEvidence": {
+        "workflowEvidence": false,
+        "focusedFilesEvidence": false,
+        "readmeProblemEvidence": false,
+        "examplesEvidence": false,
+        "boundaryEvidence": false
+      },
+      "recommendations": {
+        "mustFix": [
+          "LICENSE file not found",
+          "No routing to focused .md files detected (recommended: >= 2)",
+          "No Solana-specific content detected. This may be a generic skill.",
+          "No install.sh and no install instructions in README",
+          "README is very short or empty (65 chars)"
+        ],
+        "shouldFix": [
+          "Feature-list stuffing detected: 50 bullet-point features suggest a generic catch-all skill",
+          "No package.json found",
+          "README may not clearly explain the problem being solved",
+          "README has no usage examples or code blocks",
+          "No examples/ directory found"
+        ],
+        "niceToHave": [
+          "Add examples/ directory with sample outputs",
+          "Add GitHub Actions CI workflow",
+          "Consider adding an agent definition",
+          "Consider adding command definitions"
+        ]
+      }
+    },
+    {
+      "name": "solana-defi-toolkit",
+      "version": "3.0.0",
+      "timestamp": "2026-06-28T14:11:40.937Z",
+      "score": {
+        "rawTotal": 76,
+        "total": 76,
+        "max": 100,
+        "policyCaps": [],
+        "breakdown": {
+          "structure": {
+            "score": 20,
+            "max": 20,
+            "findings": [
+              "SKILL.md found: ./skill/SKILL.md",
+              "YAML frontmatter present",
+              "name: \"solana-defi-toolkit\"",
+              "name format valid",
+              "description present",
+              "description length OK (77 chars)",
+              "README.md found",
+              "LICENSE found (MIT)"
+            ]
+          },
+          "progressive": {
+            "score": 15,
+            "max": 20,
+            "findings": [
+              "SKILL.md is 89 lines (< 200)",
+              "SKILL.md is 3832 bytes (< 8192)",
+              "No routing to focused .md files detected (recommended: >= 2)",
+              "No excessively large inline instruction blocks"
+            ]
+          },
+          "safety": {
+            "score": 25,
+            "max": 25,
+            "findings": [
+              "Priority Manipulation: no risks detected",
+              "Prompt Injection: no risks detected",
+              "Data Exfiltration: no risks detected",
+              "Secret Collection: no risks detected",
+              "Opaque Execution: no risks detected"
+            ]
+          },
+          "solanaFit": {
+            "score": 13,
+            "max": 15,
+            "findings": [
+              "High Solana fit: 35 Solana-specific keywords found: @solana/web3.js, anchor, instruction, SPL token, SPL, PDA, CPI, Bankrun, solana-test-validator, anchor test...",
+              "Weak Solana fit evidence: only 1/5 signals. Keywords present but little structural proof."
+            ]
+          },
+          "installReady": {
+            "score": 3,
+            "max": 10,
+            "findings": [
+              "No install.sh and no install instructions in README",
+              "No package.json found"
+            ]
+          },
+          "docs": {
+            "score": 0,
+            "max": 10,
+            "findings": [
+              "README may not clearly explain the problem being solved",
+              "README has no usage examples or code blocks",
+              "No examples/ directory found",
+              "README is very short or empty (65 chars)"
+            ]
+          }
+        }
+      },
+      "rating": "Good",
+      "risks": [
+        "No routing to focused .md files detected (recommended: >= 2)",
+        "No install.sh and no install instructions in README",
+        "README is very short or empty (65 chars)"
+      ],
+      "solanaEvidence": {
+        "workflowEvidence": true,
+        "focusedFilesEvidence": false,
+        "readmeProblemEvidence": false,
+        "examplesEvidence": false,
+        "boundaryEvidence": false
+      },
+      "recommendations": {
+        "mustFix": [
+          "No routing to focused .md files detected (recommended: >= 2)",
+          "No install.sh and no install instructions in README",
+          "README is very short or empty (65 chars)"
+        ],
+        "shouldFix": [
+          "Weak Solana fit evidence: only 1/5 signals. Keywords present but little structural proof.",
+          "No package.json found",
+          "README may not clearly explain the problem being solved",
+          "README has no usage examples or code blocks",
+          "No examples/ directory found"
+        ],
+        "niceToHave": [
+          "Add examples/ directory with sample outputs",
+          "Add GitHub Actions CI workflow",
+          "Consider adding an agent definition",
+          "Consider adding command definitions"
+        ]
+      }
+    },
+    {
+      "name": "solana-rpc-monitor",
+      "version": "3.0.0",
+      "timestamp": "2026-06-28T14:11:40.941Z",
+      "score": {
+        "rawTotal": 87,
+        "total": 87,
+        "max": 100,
+        "policyCaps": [],
+        "breakdown": {
+          "structure": {
+            "score": 19,
+            "max": 20,
+            "findings": [
+              "SKILL.md found: ./skill/SKILL.md",
+              "YAML frontmatter present",
+              "name: \"solana-rpc-monitor\"",
+              "name format valid",
+              "description present",
+              "description length OK (130 chars)",
+              "README.md found",
+              "LICENSE file not found"
+            ]
+          },
+          "progressive": {
+            "score": 17,
+            "max": 20,
+            "findings": [
+              "SKILL.md is 23 lines (< 200)",
+              "SKILL.md is 491 bytes (< 8192)",
+              "Only routes to 1 focused file (recommended: >= 2)",
+              "No excessively large inline instruction blocks"
+            ]
+          },
+          "safety": {
+            "score": 25,
+            "max": 25,
+            "findings": [
+              "Priority Manipulation: no risks detected",
+              "Prompt Injection: no risks detected",
+              "Data Exfiltration: no risks detected",
+              "Secret Collection: no risks detected",
+              "Opaque Execution: no risks detected"
+            ]
+          },
+          "solanaFit": {
+            "score": 15,
+            "max": 15,
+            "findings": [
+              "High Solana fit: 7 Solana-specific keywords found: @solana/web3.js, blockhash, Helius, Triton, QuickNode, validator, RPC",
+              "Moderate Solana fit evidence: 2/5 signals"
+            ]
+          },
+          "installReady": {
+            "score": 7,
+            "max": 10,
+            "findings": [
+              "No install.sh but README has install instructions",
+              "No package.json found"
+            ]
+          },
+          "docs": {
+            "score": 4,
+            "max": 10,
+            "findings": [
+              "README may not clearly explain the problem being solved",
+              "README includes usage examples or code blocks",
+              "No examples/ directory found",
+              "README is short (158 chars)"
+            ]
+          }
+        }
+      },
+      "rating": "Excellent",
+      "risks": [
+        "LICENSE file not found"
+      ],
+      "solanaEvidence": {
+        "workflowEvidence": true,
+        "focusedFilesEvidence": true,
+        "readmeProblemEvidence": false,
+        "examplesEvidence": false,
+        "boundaryEvidence": false
+      },
+      "recommendations": {
+        "mustFix": [
+          "LICENSE file not found"
+        ],
+        "shouldFix": [
+          "Only routes to 1 focused file (recommended: >= 2)",
+          "No package.json found",
+          "README may not clearly explain the problem being solved",
+          "No examples/ directory found",
+          "README is short (158 chars)"
+        ],
+        "niceToHave": [
+          "Add examples/ directory with sample outputs",
+          "Add GitHub Actions CI workflow",
+          "Consider adding an agent definition",
+          "Consider adding command definitions"
+        ]
+      }
+    },
+    {
+      "name": "solana-nft-verifier",
+      "version": "3.0.0",
+      "timestamp": "2026-06-28T14:11:40.929Z",
+      "score": {
+        "rawTotal": 91,
+        "total": 91,
+        "max": 100,
+        "policyCaps": [],
+        "breakdown": {
+          "structure": {
+            "score": 20,
+            "max": 20,
+            "findings": [
+              "SKILL.md found: ./skill/SKILL.md",
+              "YAML frontmatter present",
+              "name: \"solana-nft-verifier\"",
+              "name format valid",
+              "description present",
+              "description length OK (137 chars)",
+              "README.md found",
+              "LICENSE found (MIT)"
+            ]
+          },
+          "progressive": {
+            "score": 20,
+            "max": 20,
+            "findings": [
+              "SKILL.md is 24 lines (< 200)",
+              "SKILL.md is 590 bytes (< 8192)",
+              "Routes to 2 focused .md files: verification.md, setup.md",
+              "No excessively large inline instruction blocks"
+            ]
+          },
+          "safety": {
+            "score": 25,
+            "max": 25,
+            "findings": [
+              "Priority Manipulation: no risks detected",
+              "Prompt Injection: no risks detected",
+              "Data Exfiltration: no risks detected",
+              "Secret Collection: no risks detected",
+              "Opaque Execution: no risks detected"
+            ]
+          },
+          "solanaFit": {
+            "score": 12,
+            "max": 15,
+            "findings": [
+              "Medium Solana fit: 4 keywords found: @solana/web3.js, Helius, Metaplex, Token-2022",
+              "Moderate Solana fit evidence: 3/5 signals"
+            ]
+          },
+          "installReady": {
+            "score": 7,
+            "max": 10,
+            "findings": [
+              "No install.sh but README has install instructions",
+              "No package.json found"
+            ]
+          },
+          "docs": {
+            "score": 7,
+            "max": 10,
+            "findings": [
+              "README explains the problem/motivation",
+              "README includes usage examples or code blocks",
+              "No examples/ directory found",
+              "README is short (384 chars)"
+            ]
+          }
+        }
+      },
+      "rating": "Excellent",
+      "risks": [],
+      "solanaEvidence": {
+        "workflowEvidence": true,
+        "focusedFilesEvidence": true,
+        "readmeProblemEvidence": true,
+        "examplesEvidence": false,
+        "boundaryEvidence": false
+      },
+      "recommendations": {
+        "mustFix": [],
+        "shouldFix": [
+          "No package.json found",
+          "No examples/ directory found",
+          "README is short (384 chars)"
+        ],
+        "niceToHave": [
+          "Add examples/ directory with sample outputs",
+          "Add GitHub Actions CI workflow",
+          "Consider adding an agent definition",
+          "Consider adding command definitions"
+        ]
+      }
+    }
+  ]
+}

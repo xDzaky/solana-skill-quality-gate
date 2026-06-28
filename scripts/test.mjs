@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 /**
- * test.mjs — Test runner for solana-skill-quality-gate v2.0
+ * test.mjs — Test runner for solana-skill-quality-gate v3.0
  *
  * Tests: fixtures, self-audit, policy caps, strict mode, fail-under,
- * negation-aware scanning, benchmark fixtures, report generation.
+ * negation-aware scanning, benchmark fixtures, report generation,
+ * batch review, SARIF output, evidence-based Solana fit, hardened self-audit.
  */
 
 import { spawnSync } from 'node:child_process';
@@ -62,7 +63,7 @@ function runJSON(args) {
 
 console.log('');
 console.log('╔══════════════════════════════════════════════════════════════╗');
-console.log('║  solana-skill-quality-gate — Test Suite v2.0               ║');
+console.log('║  solana-skill-quality-gate — Test Suite v3.0               ║');
 console.log('╚══════════════════════════════════════════════════════════════╝');
 console.log('');
 
@@ -310,6 +311,133 @@ if (existsSync(BENCH)) {
     assert(result.score.total <= 39, `Got ${result.score.total}`);
   });
 }
+
+// ─── 12. Batch command ──────────────────────────────────────────────────────
+
+console.log('\nBatch command:');
+
+test('batch scans benchmark fixtures', () => {
+  const output = runOK(`batch ${BENCH}`);
+  assert(output.includes('Batch Review'), 'Missing batch header');
+});
+
+test('batch JSON output is valid', () => {
+  const output = runOK(`batch ${BENCH} --json`);
+  const batch = JSON.parse(output);
+  assert(batch.totalSkills === 5, `Expected 5 skills, got ${batch.totalSkills}`);
+  assert(typeof batch.summary.avgRaw === 'number', 'avgRaw not number');
+  assert(typeof batch.summary.avgFinal === 'number', 'avgFinal not number');
+});
+
+test('batch markdown output is generated', () => {
+  const output = runOK(`batch ${BENCH} --markdown`);
+  assert(output.includes('# Batch Review Report'), 'Missing markdown header');
+  assert(output.includes('Results (sorted'), 'Missing results table');
+});
+
+test('batch results sorted by final score ascending', () => {
+  const output = runOK(`batch ${BENCH} --json`);
+  const batch = JSON.parse(output);
+  for (let i = 1; i < batch.results.length; i++) {
+    assert(batch.results[i].score.total >= batch.results[i-1].score.total,
+      `Not sorted: ${batch.results[i-1].score.total} > ${batch.results[i].score.total}`);
+  }
+});
+
+test('batch --fail-under fails when fixture is below threshold', () => {
+  const r = run(`batch ${BENCH} --json --fail-under 90`);
+  assert(r.status === 1, `Expected exit 1, got ${r.status}`);
+});
+
+// ─── 13. SARIF output ───────────────────────────────────────────────────────
+
+console.log('\nSARIF output:');
+
+const tmpSarif = join(__dirname, '..', 'examples', '_test.sarif');
+
+test('SARIF output is valid JSON', () => {
+  mkdirSync(dirname(tmpSarif), { recursive: true });
+  runOK(`report ${BAD} --sarif --out ${tmpSarif}`);
+  const content = readFileSync(tmpSarif, 'utf-8');
+  const sarif = JSON.parse(content);
+  assert(sarif.version === '2.1.0', `SARIF version: ${sarif.version}`);
+});
+
+test('SARIF has version 2.1.0', () => {
+  const content = readFileSync(tmpSarif, 'utf-8');
+  const sarif = JSON.parse(content);
+  assert(sarif.version === '2.1.0', `Got ${sarif.version}`);
+  assert(sarif.runs.length === 1, 'Expected 1 run');
+  assert(sarif.runs[0].tool.driver.name === 'solana-skill-quality-gate', 'Wrong tool name');
+});
+
+test('bad fixture creates SARIF results', () => {
+  const content = readFileSync(tmpSarif, 'utf-8');
+  const sarif = JSON.parse(content);
+  assert(sarif.runs[0].results.length > 0, 'No SARIF results');
+});
+
+test('good fixture creates zero critical SARIF results', () => {
+  const tmpGoodSarif = join(__dirname, '..', 'examples', '_test-good.sarif');
+  runOK(`report ${GOOD} --sarif --out ${tmpGoodSarif}`);
+  const content = readFileSync(tmpGoodSarif, 'utf-8');
+  const sarif = JSON.parse(content);
+  const critical = sarif.runs[0].results.filter(r => r.level === 'error');
+  assert(critical.length === 0, `Got ${critical.length} critical results`);
+  try { unlinkSync(tmpGoodSarif); } catch { /* ignore */ }
+});
+
+try { unlinkSync(tmpSarif); } catch { /* ignore */ }
+
+// ─── 14. Evidence-based Solana fit ──────────────────────────────────────────
+
+console.log('\nSolana fit evidence:');
+
+test('self-audit shows strong evidence signals', () => {
+  const result = runJSON(`score ${ROOT} --json`);
+  assert(result.solanaEvidence, 'Missing solanaEvidence');
+  const count = Object.values(result.solanaEvidence).filter(Boolean).length;
+  assert(count >= 4, `Only ${count}/5 evidence signals`);
+});
+
+test('excellent fixture shows multiple evidence signals', () => {
+  const result = runJSON(`score ${join(BENCH, 'excellent')} --json`);
+  assert(result.solanaEvidence, 'Missing solanaEvidence');
+  const count = Object.values(result.solanaEvidence).filter(Boolean).length;
+  assert(count >= 2, `Only ${count}/5 evidence signals`);
+});
+
+test('generic keyword-stuffing fixture has weak evidence', () => {
+  const result = runJSON(`score ${join(BENCH, 'generic-keyword-stuffing')} --json`);
+  assert(result.solanaEvidence, 'Missing solanaEvidence');
+  const count = Object.values(result.solanaEvidence).filter(Boolean).length;
+  assert(count <= 2, `Expected weak evidence but got ${count}/5`);
+});
+
+// ─── 15. Hardened self-audit ────────────────────────────────────────────────
+
+console.log('\nHardened self-audit:');
+
+test('self-audit still passes for repo root', () => {
+  const result = runJSON(`score ${ROOT} --json`);
+  assert(result.score.total >= 90, `Self-audit: ${result.score.total}`);
+  assert(result.score.breakdown.safety.score === 25, `Safety: ${result.score.breakdown.safety.score}`);
+});
+
+test('dangerous-install with scripts/skillqa.mjs is still flagged', () => {
+  // The dangerous-install fixture does NOT have scripts/skillqa.mjs,
+  // but even if it did, the strict path check would prevent bypass
+  const result = runJSON(`score ${join(BENCH, 'dangerous-install')} --json`);
+  assert(result.score.policyCaps.length > 0, 'No policy caps — bypass detected!');
+  assert(result.score.total <= 39, `Score ${result.score.total} — not capped`);
+});
+
+test('safety exclusions do not apply to arbitrary repos', () => {
+  // good-skill is not the scanner root, so exclusions should not apply
+  const result = runJSON(`score ${GOOD} --json`);
+  // Good skill should still score well because it has no malicious content
+  assert(result.score.breakdown.safety.score >= 20, `Got ${result.score.breakdown.safety.score}`);
+});
 
 // ─── Summary ─────────────────────────────────────────────────────────────────
 

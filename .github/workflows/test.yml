@@ -22,14 +22,20 @@ jobs:
         with:
           node-version: ${{ matrix.node-version }}
 
-      - name: Run test suite (35 tests)
+      - name: Run test suite (50 tests)
         run: npm test
 
-      - name: Self-audit (score >= 90)
-        run: node scripts/skillqa.mjs score . --json --fail-under 90
+      - name: Self-audit gate (score >= 90)
+        run: npm run gate
 
-      - name: Self-audit report
-        run: npm run report:self
+      - name: Batch review benchmark fixtures (JSON)
+        run: node scripts/skillqa.mjs batch scripts/fixtures/benchmark-samples --json --out examples/batch-review.json
+
+      - name: Batch review benchmark fixtures (Markdown)
+        run: node scripts/skillqa.mjs batch scripts/fixtures/benchmark-samples --markdown --out examples/batch-review.md
+
+      - name: SARIF report for bad fixture
+        run: node scripts/skillqa.mjs report scripts/fixtures/bad-skill --sarif --out examples/bad-skill.sarif
 
       - name: Strict mode rejects bad fixture (expected exit 2)
         run: |
@@ -39,10 +45,14 @@ jobs:
         run: |
           npm run report:good
           npm run report:bad
+          npm run report:self
 
       - name: Upload reports
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: audit-reports-node${{ matrix.node-version }}
-          path: examples/*.md
+          path: |
+            examples/*.md
+            examples/*.json
+            examples/*.sarif

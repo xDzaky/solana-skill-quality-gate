@@ -1,8 +1,8 @@
 # Skill Audit Report
 
 **Skill**: solana-skill-quality-gate
-**Audited**: 2026-06-28T11:35:56.166Z
-**Scanner**: solana-skill-quality-gate v2.0.0
+**Audited**: 2026-06-28T14:11:40.663Z
+**Scanner**: solana-skill-quality-gate v3.0.0
 **Overall Score**: 100/100
 **Rating**: Excellent
 
@@ -54,6 +54,7 @@
 ### Solana Ecosystem Fit
 
 - High Solana fit: 52 Solana-specific keywords found: @solana/web3.js, @solana/kit, @solana/spl-token, anchor, pinocchio, seahorse, instruction, blockhash, lamport, SPL token...
+- Strong Solana fit evidence: 5/5 signals (workflow, focused files, README problem, examples, boundaries)
 
 ### Install & Test Readiness
 
@@ -66,7 +67,7 @@
 - README explains the problem/motivation
 - README includes usage examples or code blocks
 - examples/ directory found
-- README has substantial content (9090 chars)
+- README has substantial content (8373 chars)
 
 ---
 

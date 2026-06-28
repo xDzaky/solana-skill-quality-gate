@@ -1,0 +1,364 @@
+## Verdict setelah Round 2
+
+**Jauh lebih bagus. Sekarang sudah layak submit serius.**
+Dari sisi repo, ini naik dari “good submission” menjadi **top-10 contender**. README sekarang punya CI badge, “Verify in 60 Seconds”, strict mode, policy caps, self-audit, limitations, judge checklist, dan custom installer. Itu semua membuat juri bisa cepat percaya.
+
+Tapi untuk **top 1 / top 5**, masih ada beberapa hal yang bisa membuat repo kamu kalah dari peserta yang punya “real-world proof” lebih kuat.
+
+Saat ini bounty punya **247 submissions**, total hadiah **3,000 USDG**, dan prize 1–5 masing-masing **400 USDG**. ([Superteam][1]) Repo `skill-bounty` juga terlihat punya **82 open PR**. ([GitHub][2]) Jadi secara kompetisi, ini tetap sangat berat.
+
+Estimasi subjektif saya setelah Round 2:
+
+```txt
+Top 10 chance: 25–40%
+Top 5 chance: 10–20%
+Top 1 chance: 3–8%
+```
+
+Kalau Round 3 dikerjakan dengan benar:
+
+```txt
+Top 10 chance: 40–55%
+Top 5 chance: 20–30%
+Top 1 chance: 8–15%
+```
+
+Tidak ada jaminan, tapi Round 3 bisa membuat repo kamu terlihat sebagai **alat maintainer nyata**, bukan hanya scanner demo.
+
+---
+
+# Yang sudah sangat kuat
+
+**1. README sudah judge-friendly.**
+Ada “Verify in 60 Seconds”, command test, self-audit, dan CI gate. Ini bagus karena juri tidak perlu menebak cara menjalankannya.
+
+**2. Fitur utama sudah lengkap.**
+README mencantumkan SKILL.md validation, progressive disclosure, safety scanning, Solana fit, policy caps, strict CI mode, fail-under gate, report generation, dan self-audit.
+
+**3. Policy caps sudah benar.**
+Prompt injection, secret collection, opaque execution, priority manipulation, suspicious install, missing SKILL.md, dan no Solana content sekarang punya max score. Ini membuat scanner terasa lebih “security reviewer”, bukan sekadar penjumlah skor.
+
+**4. Test suite naik besar.**
+`test.mjs` sudah memakai `spawnSync`, menguji self-audit, policy caps, strict mode, fail-under, negation-aware scanning, benchmark fixtures, dan report generation.
+
+**5. Self-audit 100/100 sudah jadi bukti kuat.**
+Report self-audit menunjukkan 100/100, semua kategori pass, dan tidak ada must-fix / should-fix.
+
+---
+
+# Yang masih kurang untuk mengejar top 1/top 5
+
+## 1. Benchmark masih synthetic, belum real submission
+
+File benchmark kamu jujur menyatakan bahwa benchmark hanya memakai **5 local synthetic fixtures**, bukan real bounty submissions.  Ini aman secara kejujuran, tapi untuk top 1 masih kurang kuat.
+
+Kompetitor top biasanya menunjukkan bukti “sudah dicoba pada kasus nyata”. Kamu perlu tambah:
+
+```txt
+examples/real-submission-smoke-test.md
+examples/real-submission-smoke-test.json
+```
+
+Isinya tidak perlu menyerang peserta lain. Pakai 8–12 repo/PR publik secara anonim atau by link, lalu audit read-only. Tampilkan kategori umum: “strong progressive disclosure”, “missing install proof”, “safety clean”, “docs weak”, dan sebagainya.
+
+Ini akan membuat sponsor berpikir: **“alat ini langsung bisa membantu kami review 247 submission.”**
+
+## 2. Self-audit exclusion terlalu luas
+
+Di `skillqa.mjs`, self-audit dideteksi hanya dari keberadaan `scripts/skillqa.mjs`.  Lalu ketika self-audit, scanner mengecualikan `scripts/`, `examples/`, `commands/`, `agents/`, `skill/`, `README.md`, dan beberapa file lain dari safety scanning.
+
+Ini menyelesaikan false positive, tapi terlalu longgar. Secara security reviewer, juri bisa bertanya:
+
+> “Kalau ada repo lain yang punya `scripts/skillqa.mjs`, apakah dia bisa memicu self-audit bypass?”
+
+Solusinya: self-audit harus hanya aktif kalau path yang diaudit adalah root repo milik scanner sendiri, misalnya `resolve(skillPath) === resolve(__dirname, '..')`, bukan hanya “ada file `scripts/skillqa.mjs`”.
+
+## 3. Belum ada `batch` command asli
+
+README menjelaskan kebutuhan batch review, tapi CLI command utama masih `audit`, `score`, dan `report`. Untuk maintainer yang menghadapi 247 submissions, fitur killer-nya harus:
+
+```bash
+node scripts/skillqa.mjs batch ./submissions --out examples/batch-review.json --markdown examples/batch-review.md
+```
+
+Ini akan sangat menaikkan value. Sekarang scanner kamu menilai satu repo; Round 3 harus membuatnya bisa menilai banyak repo.
+
+## 4. Solana fit masih keyword-based
+
+README sudah jujur bahwa tool tidak melakukan semantic/LLM-based analysis dan tidak memverifikasi runtime behavior.  Itu bagus, tapi untuk top 1 kamu perlu tambahkan **evidence-based Solana fit**, bukan hanya keyword.
+
+Contoh evidence check:
+
+```txt
+- Has Solana-specific examples?
+- Has real command workflow?
+- Mentions concrete Solana builder problem?
+- Uses Solana stack terms in instructions, not only description?
+- Has ecosystem-specific failure modes?
+- Has explicit delegation boundaries with existing skills?
+```
+
+Jadi scoring tidak hanya “berapa banyak keyword Solana”.
+
+## 5. README link Solana AI Kit perlu disamakan dengan bounty
+
+README kamu sekarang mengarah ke `sendai-sf/solana-ai-kit`.  Sedangkan listing dan repo yang saya cek adalah `solanabr/solana-ai-kit`, dan repo itu menjelaskan Solana AI Kit sebagai production-ready Claude Code configuration dengan agents, commands, MCP, progressive loading, dan skill hub. ([GitHub][3])
+
+Sebaiknya ganti link README ke:
+
+```txt
+https://github.com/solanabr/solana-ai-kit
+```
+
+Ini kecil, tapi untuk bounty sponsor, akurasi link penting.
+
+---
+
+# Rekomendasi Round 3
+
+Prioritas paling berdampak:
+
+```txt
+1. Tambah batch command
+2. Tambah real-submission smoke test
+3. Perketat self-audit detection agar tidak bisa dibypass
+4. Tambah evidence-based Solana fit scoring
+5. Tambah SARIF output supaya bisa masuk GitHub Code Scanning
+6. Ganti link Solana AI Kit ke repo sponsor
+7. Tambah PR-ready pitch file: SUBMISSION.md
+```
+
+Kalau hanya punya waktu sedikit, kerjakan **1–4** saja.
+
+---
+
+# Prompt Round 3 untuk AI agent
+
+Pakai prompt ini ke Opus/Sonnet:
+
+You are a senior Solana AI Kit maintainer, security reviewer, and open-source engineer.
+
+Repository:
+[https://github.com/xDzaky/solana-skill-quality-gate](https://github.com/xDzaky/solana-skill-quality-gate)
+
+Context:
+Round 2 already added self-audit, policy caps, strict mode, fail-under, 35 tests, benchmark fixtures, custom installer, README upgrades, and CI. The repo is now a strong top-10 contender. Round 3 must push it toward top-5/top-1 by making it more useful for real maintainers reviewing 247+ bounty submissions.
+
+Do not rewrite the project. Make targeted, high-leverage upgrades.
+
+Required Round 3 upgrades:
+
+1. Fix README Solana AI Kit link
+
+* Replace any incorrect Solana AI Kit link with:
+  [https://github.com/solanabr/solana-ai-kit](https://github.com/solanabr/solana-ai-kit)
+* Keep references to the bounty and skill-bounty repo accurate.
+
+2. Harden self-audit detection
+   Current self-audit detection is too loose if it only checks whether `scripts/skillqa.mjs` exists.
+   Change it so self-audit mode only activates when the audited path is exactly this repository root:
+
+* `resolve(skillPath) === resolve(__dirname, '..')`
+  or another equally strict identity check.
+  Do not allow a random audited repo with `scripts/skillqa.mjs` to bypass safety scanning.
+  Add tests:
+* self-audit still passes for repo root
+* a fixture containing `scripts/skillqa.mjs` but malicious SKILL.md is still flagged
+* safety exclusions do not apply to arbitrary repos
+
+3. Add batch review command
+   Implement:
+
+```bash
+node scripts/skillqa.mjs batch <directory> --json --out examples/batch-review.json
+node scripts/skillqa.mjs batch <directory> --markdown --out examples/batch-review.md
+node scripts/skillqa.mjs batch <directory> --fail-under 80
+```
+
+Behavior:
+
+* Treat each immediate child directory as one skill repo.
+* Run the same audit logic on each.
+* Output:
+
+  * total skills scanned
+  * pass/fail count
+  * average raw score
+  * average final score
+  * policy-capped count
+  * top risks
+  * sorted results from lowest final score to highest
+* Exit non-zero if any skill is below `--fail-under`.
+* Do not execute audited scripts.
+* Do not make network calls.
+
+Add tests:
+
+* batch command scans benchmark fixtures
+* JSON output is valid
+* markdown output is generated
+* fail-under fails when one fixture is below threshold
+* results are sorted by final score ascending
+
+4. Add evidence-based Solana fit scoring
+   Keep keyword scoring, but add an additional evidence layer so generic keyword stuffing is harder.
+
+Evidence checks:
+
+* SKILL.md has concrete Solana workflows, not only keywords
+* focused skill files contain Solana-specific instructions
+* README explains a real Solana builder problem
+* examples or commands demonstrate Solana-specific use
+* skill defines boundaries with existing ecosystem skills where relevant
+* detects when keywords appear mostly in frontmatter/description but not in actual instructions
+
+Add JSON output fields:
+
+```json
+"solanaEvidence": {
+  "workflowEvidence": true,
+  "focusedFilesEvidence": true,
+  "readmeProblemEvidence": true,
+  "examplesEvidence": false,
+  "boundaryEvidence": true
+}
+```
+
+Add report section:
+`## Solana Fit Evidence`
+
+Add tests:
+
+* generic keyword-stuffing fixture remains capped or penalized
+* excellent fixture shows multiple evidence signals
+* self-audit shows strong evidence signals
+
+5. Add SARIF output for GitHub Code Scanning compatibility
+   Implement:
+
+```bash
+node scripts/skillqa.mjs report <path> --sarif --out skillqa.sarif
+```
+
+SARIF should include:
+
+* tool name/version
+* rules for critical safety findings
+* results for prompt injection, secret collection, opaque execution, missing SKILL.md, suspicious install
+* severity levels
+  This makes the tool look more production-grade and CI-friendly.
+
+Add tests:
+
+* SARIF output is valid JSON
+* SARIF has version "2.1.0"
+* bad fixture creates SARIF results
+* good fixture creates zero critical SARIF results
+
+6. Add real-submission smoke test documentation
+   Create:
+
+* `examples/real-submission-smoke-test.md`
+* `examples/real-submission-smoke-test.json`
+
+Important:
+Do not pretend to fully audit all bounty submissions.
+Use 8–12 public PRs/repos from solanabr/skill-bounty as a smoke test if accessible.
+If not accessible locally, create a documented template explaining how maintainers can clone PR repos into `submissions/` and run:
+
+```bash
+node scripts/skillqa.mjs batch submissions --markdown --out examples/real-submission-smoke-test.md
+```
+
+The smoke test must be honest:
+
+* disclose sample size
+* disclose that it is automated and assistive
+* avoid naming/shaming competitors unless the data is factual and public
+* focus on demonstrating maintainer workflow
+
+7. Add SUBMISSION.md
+   Create a judge-facing `SUBMISSION.md` with:
+
+* one-paragraph pitch
+* why this is novel
+* why this helps Solana AI Kit maintainers
+* verification commands
+* key proof points
+* safety model
+* limitations
+* exact bounty form answers
+* exact PR body for solanabr/skill-bounty
+
+8. Update README
+   Add:
+
+* Batch review section
+* SARIF section
+* Solana Fit Evidence section
+* Link to SUBMISSION.md
+* Link to real-submission smoke test
+* Updated judge checklist:
+
+  * npm test
+  * npm run gate
+  * batch benchmark
+  * SARIF report
+  * strict bad fixture rejection
+
+9. Update CI
+   CI should run:
+
+```bash
+npm test
+npm run gate
+node scripts/skillqa.mjs batch scripts/fixtures/benchmark-samples --json --out examples/batch-review.json
+node scripts/skillqa.mjs batch scripts/fixtures/benchmark-samples --markdown --out examples/batch-review.md
+node scripts/skillqa.mjs report scripts/fixtures/bad-skill --sarif --out examples/bad-skill.sarif
+```
+
+10. Regenerate examples
+    Regenerate:
+
+* examples/audit-report-self.md
+* examples/audit-report-good.md
+* examples/audit-report-bad.md
+* examples/benchmark-summary.json
+* examples/batch-review.json
+* examples/batch-review.md
+* examples/bad-skill.sarif
+
+11. Commit
+    Commit message:
+    `feat: add batch review, SARIF output, and evidence-based Solana fit`
+
+Before final response, run:
+
+```bash
+npm test
+npm run gate
+node scripts/skillqa.mjs batch scripts/fixtures/benchmark-samples --json --out examples/batch-review.json
+node scripts/skillqa.mjs report scripts/fixtures/bad-skill --sarif --out examples/bad-skill.sarif
+```
+
+Final response must include:
+
+* test count
+* self-audit score
+* batch summary
+* SARIF validation result
+* files changed
+* new PR body
+* updated bounty submission answer
+
+---
+
+# Kesimpulan final
+
+**Sekarang sudah bagus dan jauh lebih kompetitif.** Saya tidak akan skip project ini. Ini sudah punya peluang nyata untuk dilirik karena idenya berbeda: bukan skill domain biasa, tapi **quality gate untuk menyeleksi skill lain**.
+
+Tapi kalau target kamu **top 1/top 5**, Round 3 masih layak dikerjakan. Upgrade paling penting adalah **batch review + real-submission smoke test + hardened self-audit + evidence-based Solana fit**. Itu yang akan membuat repo kamu terasa seperti tool yang benar-benar bisa dipakai sponsor untuk menilai ratusan submission.
+
+[1]: https://superteam.fun/earn/listing/skills/ "Ship useful agent skills we can add to Solana AI Kit by Superteam Brasil | Superteam Earn Listing"
+[2]: https://github.com/solanabr/skill-bounty/pulls "Pull requests · solanabr/skill-bounty · GitHub"
+[3]: https://github.com/solanabr/solana-ai-kit "GitHub - solanabr/solana-ai-kit: Claude Code / Codex / AI configs for the expert Solana builder. CLAUDE.md, agents, commands, hooks, rules, skills and settings across Web, Anchor, Pinnochio, Unity, Mobile, security and more. · GitHub"

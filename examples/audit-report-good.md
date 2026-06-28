@@ -1,8 +1,8 @@
 # Skill Audit Report
 
 **Skill**: solana-token-monitor
-**Audited**: 2026-06-28T11:35:53.248Z
-**Scanner**: solana-skill-quality-gate v2.0.0
+**Audited**: 2026-06-28T14:11:39.087Z
+**Scanner**: solana-skill-quality-gate v3.0.0
 **Overall Score**: 95/100
 **Rating**: Excellent
 
@@ -54,6 +54,7 @@
 ### Solana Ecosystem Fit
 
 - High Solana fit: 13 Solana-specific keywords found: @solana/web3.js, instruction, lamport, SPL token, SPL, Jupiter, Helius, Metaplex, validator, RPC...
+- Moderate Solana fit evidence: 3/5 signals
 
 ### Install & Test Readiness
 

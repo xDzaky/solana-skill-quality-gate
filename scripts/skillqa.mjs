@@ -32,7 +32,7 @@ import { fileURLToPath } from 'node:url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
-const VERSION = '2.0.0';
+const VERSION = '3.0.0';
 
 // ─── Policy caps ─────────────────────────────────────────────────────────────
 // Critical safety findings cap the total score regardless of other categories.
@@ -489,8 +489,12 @@ function isNegatedContext(content, pattern, matchIndex) {
 }
 
 function isSelfAudit(skillPath) {
-  // Detect if we're auditing our own repo by checking for our own CLI
-  return existsSync(join(skillPath, 'scripts', 'skillqa.mjs'));
+  // Strict identity check: only activate self-audit when the audited path
+  // is exactly this repository root. Prevents bypass by other repos that
+  // happen to contain scripts/skillqa.mjs.
+  const scannerRoot = resolve(__dirname, '..');
+  const auditedPath = resolve(skillPath);
+  return auditedPath === scannerRoot;
 }
 
 function auditSafety(skillPath, rules) {
@@ -582,10 +586,8 @@ function auditSolanaFit(skillPath, rules) {
 
   const foundKeywords = [];
   for (const keyword of allKeywords) {
-    // Case-insensitive for most, but preserve case for specific names
     const searchTerm = keyword.length <= 3 ? keyword : keyword.toLowerCase();
     const searchContent = keyword.length <= 3 ? allContent : allContent.toLowerCase();
-
     if (searchContent.includes(searchTerm)) {
       foundKeywords.push(keyword);
     }
@@ -621,13 +623,11 @@ function auditSolanaFit(skillPath, rules) {
     triggeredPolicies.push('no_solana_fit');
   }
 
-  // Keyword stuffing detection — check for generic feature lists
+  // Keyword stuffing detection
   const skillMdPath = findSkillMd(skillPath);
   if (skillMdPath) {
     const skillContent = readFileSafe(skillMdPath) || '';
     const fm = parseFrontmatter(skillContent);
-
-    // Check for feature-list stuffing: lots of bullet-point features with shallow mentions
     const bulletLines = skillContent.split('\n').filter(l => l.trim().startsWith('- '));
     if (bulletLines.length > 30) {
       findings.push({
@@ -636,7 +636,6 @@ function auditSolanaFit(skillPath, rules) {
       });
       score = Math.max(0, score - 7);
     }
-
     if (fm) {
       const descKeywords = allKeywords.filter(k => {
         const s = k.length <= 3 ? k : k.toLowerCase();
@@ -648,8 +647,6 @@ function auditSolanaFit(skillPath, rules) {
         const c = k.length <= 3 ? skillContent : skillContent.toLowerCase();
         return c.includes(s);
       });
-
-      // If many keywords in name/desc but few in actual content, flag stuffing
       if (descKeywords.length > 3 && bodyKeywords.length <= descKeywords.length + 1) {
         findings.push({
           level: 'warn',
@@ -660,7 +657,70 @@ function auditSolanaFit(skillPath, rules) {
     }
   }
 
-  return { score: Math.min(15, Math.max(0, score)), max: 15, findings, triggeredPolicies };
+  // ─── Evidence-based Solana fit ───────────────────────────────────────
+  const evidence = {
+    workflowEvidence: false,
+    focusedFilesEvidence: false,
+    readmeProblemEvidence: false,
+    examplesEvidence: false,
+    boundaryEvidence: false,
+  };
+
+  // 1. SKILL.md has concrete Solana workflows (not just keywords)
+  if (skillMdPath) {
+    const sc = (readFileSafe(skillMdPath) || '').toLowerCase();
+    const workflowPatterns = ['when to use', 'workflow', 'step 1', 'step 2', 'how to', 'usage', '## use'];
+    evidence.workflowEvidence = workflowPatterns.some(p => sc.includes(p));
+  }
+
+  // 2. Focused skill files contain Solana-specific instructions
+  const skillDir = existsSync(join(skillPath, 'skill')) ? join(skillPath, 'skill') : null;
+  if (skillDir) {
+    const focusedFiles = getAllTextFiles(skillDir).filter(f => f.relPath !== 'SKILL.md');
+    if (focusedFiles.length > 0) {
+      const focusedContent = focusedFiles.map(f => readFileSafe(f.path) || '').join('\n').toLowerCase();
+      const hasSolanaInFocused = allKeywords.some(k => {
+        const s = k.length <= 3 ? k : k.toLowerCase();
+        return focusedContent.includes(s);
+      });
+      evidence.focusedFilesEvidence = hasSolanaInFocused;
+    }
+  }
+
+  // 3. README explains a real Solana builder problem
+  const readmeContent = (readFileSafe(join(skillPath, 'README.md')) || '').toLowerCase();
+  const problemPatterns = ['problem', 'why', 'motivation', 'challenge', 'pain point', 'solana builder', 'solana developer'];
+  evidence.readmeProblemEvidence = problemPatterns.some(p => readmeContent.includes(p));
+
+  // 4. Examples or commands demonstrate Solana-specific use
+  const hasExamples = existsSync(join(skillPath, 'examples')) || existsSync(join(skillPath, 'commands'));
+  if (hasExamples) {
+    const exDir = existsSync(join(skillPath, 'examples')) ? join(skillPath, 'examples') : join(skillPath, 'commands');
+    const exFiles = getAllTextFiles(exDir);
+    const exContent = exFiles.map(f => readFileSafe(f.path) || '').join('\n').toLowerCase();
+    evidence.examplesEvidence = allKeywords.some(k => {
+      const s = k.length <= 3 ? k : k.toLowerCase();
+      return exContent.includes(s);
+    });
+  }
+
+  // 5. Skill defines boundaries with existing skills
+  const allTextContent = allContent.toLowerCase();
+  const boundaryPatterns = ['boundary', 'scope', 'does not', 'will not', 'out of scope', 'not responsible', 'delegate', 'complementary', 'works alongside'];
+  evidence.boundaryEvidence = boundaryPatterns.some(p => allTextContent.includes(p));
+
+  // Score evidence signals
+  const evidenceCount = Object.values(evidence).filter(Boolean).length;
+  if (evidenceCount >= 4) {
+    findings.push({ level: 'pass', msg: `Strong Solana fit evidence: ${evidenceCount}/5 signals (workflow, focused files, README problem, examples, boundaries)` });
+  } else if (evidenceCount >= 2) {
+    findings.push({ level: 'pass', msg: `Moderate Solana fit evidence: ${evidenceCount}/5 signals` });
+  } else if (uniqueCount >= 1) {
+    findings.push({ level: 'warn', msg: `Weak Solana fit evidence: only ${evidenceCount}/5 signals. Keywords present but little structural proof.` });
+    score = Math.max(0, score - 2);
+  }
+
+  return { score: Math.min(15, Math.max(0, score)), max: 15, findings, triggeredPolicies, evidence };
 }
 
 function auditInstallReady(skillPath) {
@@ -877,6 +937,7 @@ function runAudit(skillPath) {
     },
     rating,
     risks,
+    solanaEvidence: solanaFit.evidence || {},
     recommendations: { mustFix, shouldFix, niceToHave },
     _hasCriticalSafety: hasCriticalSafety,
     _hasMissingSkillMd: hasMissingSkillMd,
@@ -1129,6 +1190,202 @@ function formatReportMarkdown(result) {
   return lines.join('\n');
 }
 
+// ─── SARIF formatter ─────────────────────────────────────────────────────────
+
+function formatSARIF(result) {
+  const rules = [];
+  const results = [];
+
+  const sarifRules = [
+    { id: 'SQGA001', name: 'PromptInjection', severity: 'error', desc: 'Prompt injection pattern detected' },
+    { id: 'SQGA002', name: 'SecretCollection', severity: 'error', desc: 'Secret collection pattern detected' },
+    { id: 'SQGA003', name: 'OpaqueExecution', severity: 'error', desc: 'Opaque/suspicious execution pattern detected' },
+    { id: 'SQGA004', name: 'PriorityManipulation', severity: 'warning', desc: 'Priority manipulation pattern detected' },
+    { id: 'SQGA005', name: 'DataExfiltration', severity: 'error', desc: 'Data exfiltration pattern detected' },
+    { id: 'SQGA006', name: 'MissingSkillMd', severity: 'warning', desc: 'SKILL.md not found' },
+    { id: 'SQGA007', name: 'SuspiciousInstall', severity: 'error', desc: 'Suspicious install script with network calls or eval' },
+    { id: 'SQGA008', name: 'NoSolanaFit', severity: 'warning', desc: 'No Solana-specific content detected' },
+  ];
+
+  for (const rule of sarifRules) {
+    rules.push({
+      id: rule.id,
+      name: rule.name,
+      shortDescription: { text: rule.desc },
+      defaultConfiguration: { level: rule.severity },
+    });
+  }
+
+  // Map policy cap IDs to SARIF rule IDs
+  const capToRule = {
+    prompt_injection: 'SQGA001',
+    secret_collection: 'SQGA002',
+    opaque_execution: 'SQGA003',
+    priority_manipulation: 'SQGA004',
+    suspicious_install: 'SQGA007',
+    missing_skillmd: 'SQGA006',
+    no_solana_fit: 'SQGA008',
+  };
+
+  // Generate results from safety findings
+  const safetyFindings = result.score.breakdown.safety.findings;
+  for (const finding of safetyFindings) {
+    if (!finding.includes('found') || finding.includes('no risks')) continue;
+    let ruleId = 'SQGA001';
+    if (finding.includes('Secret')) ruleId = 'SQGA002';
+    else if (finding.includes('Opaque')) ruleId = 'SQGA003';
+    else if (finding.includes('Priority')) ruleId = 'SQGA004';
+    else if (finding.includes('Exfiltration')) ruleId = 'SQGA005';
+    results.push({
+      ruleId,
+      level: 'error',
+      message: { text: finding },
+      locations: [{
+        physicalLocation: {
+          artifactLocation: { uri: result.path, uriBaseId: '%SRCROOT%' },
+        },
+      }],
+    });
+  }
+
+  // Add structural findings
+  if (result._hasMissingSkillMd) {
+    results.push({
+      ruleId: 'SQGA006',
+      level: 'warning',
+      message: { text: 'SKILL.md not found in skill/ or root directory' },
+      locations: [{ physicalLocation: { artifactLocation: { uri: result.path } } }],
+    });
+  }
+
+  // Add policy cap findings
+  for (const cap of result.score.policyCaps) {
+    const ruleId = capToRule[cap.id];
+    if (ruleId && !results.some(r => r.ruleId === ruleId)) {
+      results.push({
+        ruleId,
+        level: 'error',
+        message: { text: `${cap.label} — score capped to max ${cap.maxScore}` },
+        locations: [{ physicalLocation: { artifactLocation: { uri: result.path } } }],
+      });
+    }
+  }
+
+  return JSON.stringify({
+    version: '2.1.0',
+    '$schema': 'https://json.schemastore.org/sarif-2.1.0.json',
+    runs: [{
+      tool: {
+        driver: {
+          name: 'solana-skill-quality-gate',
+          version: VERSION,
+          informationUri: 'https://github.com/xDzaky/solana-skill-quality-gate',
+          rules,
+        },
+      },
+      results,
+    }],
+  }, null, 2);
+}
+
+// ─── Batch review ────────────────────────────────────────────────────────────
+
+function runBatch(batchPath) {
+  const absPath = resolve(batchPath);
+  if (!existsSync(absPath)) {
+    console.error(`Error: path does not exist: ${absPath}`);
+    process.exit(1);
+  }
+
+  const entries = readdirSync(absPath, { withFileTypes: true })
+    .filter(e => e.isDirectory() && !e.name.startsWith('.'))
+    .map(e => e.name);
+
+  const results = [];
+  for (const name of entries) {
+    const skillDir = join(absPath, name);
+    try {
+      const result = runAudit(skillDir);
+      results.push(result);
+    } catch {
+      // Skip dirs that fail to audit
+    }
+  }
+
+  // Sort by final score ascending (worst first)
+  results.sort((a, b) => a.score.total - b.score.total);
+
+  const policyCapped = results.filter(r => r.score.policyCaps.length > 0).length;
+  const avgRaw = results.length > 0 ? Math.round(results.reduce((s, r) => s + r.score.rawTotal, 0) / results.length * 10) / 10 : 0;
+  const avgFinal = results.length > 0 ? Math.round(results.reduce((s, r) => s + r.score.total, 0) / results.length * 10) / 10 : 0;
+
+  // Collect top risks
+  const riskCounts = {};
+  for (const r of results) {
+    for (const risk of r.risks) {
+      const key = risk.split(':')[0].trim();
+      riskCounts[key] = (riskCounts[key] || 0) + 1;
+    }
+  }
+  const topRisks = Object.entries(riskCounts).sort((a, b) => b[1] - a[1]).slice(0, 5);
+
+  return {
+    timestamp: new Date().toISOString(),
+    scanner: `solana-skill-quality-gate v${VERSION}`,
+    batchPath: absPath,
+    totalSkills: results.length,
+    summary: { avgRaw, avgFinal, policyCapped },
+    topRisks: topRisks.map(([risk, count]) => ({ risk, count })),
+    results: results.map(r => {
+      const { _detailed, _hasCriticalSafety, _hasMissingSkillMd, path, ...clean } = r;
+      return clean;
+    }),
+  };
+}
+
+function formatBatchMarkdown(batch) {
+  const lines = [];
+  lines.push('# Batch Review Report');
+  lines.push('');
+  lines.push(`**Date**: ${batch.timestamp}`);
+  lines.push(`**Scanner**: ${batch.scanner}`);
+  lines.push(`**Skills scanned**: ${batch.totalSkills}`);
+  lines.push(`**Average raw score**: ${batch.summary.avgRaw}`);
+  lines.push(`**Average final score**: ${batch.summary.avgFinal}`);
+  lines.push(`**Policy-capped**: ${batch.summary.policyCapped} of ${batch.totalSkills}`);
+  lines.push('');
+  const passCount = batch.results.filter(r => r.score.total >= 80).length;
+  const failCount = batch.totalSkills - passCount;
+  lines.push(`**Pass (≥80)**: ${passCount} | **Below threshold**: ${failCount}`);
+  lines.push('');
+  lines.push('---');
+  lines.push('');
+  if (batch.topRisks.length > 0) {
+    lines.push('## Top Risks');
+    lines.push('');
+    for (const { risk, count } of batch.topRisks) {
+      lines.push(`- **${risk}** — ${count} skill(s)`);
+    }
+    lines.push('');
+    lines.push('---');
+    lines.push('');
+  }
+  lines.push('## Results (sorted by score, lowest first)');
+  lines.push('');
+  lines.push('| Skill | Raw | Final | Rating | Caps |');
+  lines.push('|-------|-----|-------|--------|------|');
+  for (const r of batch.results) {
+    const caps = r.score.policyCaps.length > 0 ? r.score.policyCaps.map(c => c.label).join(', ') : 'None';
+    lines.push(`| ${r.name} | ${r.score.rawTotal} | ${r.score.total} | ${r.rating} | ${caps} |`);
+  }
+  lines.push('');
+  lines.push('---');
+  lines.push('');
+  lines.push('> ⚠️ This is an automated batch assessment. Always perform manual review.');
+  lines.push('');
+  return lines.join('\n');
+}
+
 // ─── CLI entry point ─────────────────────────────────────────────────────────
 
 function printUsage() {
@@ -1138,13 +1395,16 @@ solana-skill-quality-gate v${VERSION}
 Usage:
   node scripts/skillqa.mjs audit  <path> [--strict]
   node scripts/skillqa.mjs score  <path> [--json] [--fail-under <n>]
-  node scripts/skillqa.mjs report <path> --out <file>
+  node scripts/skillqa.mjs report <path> --out <file> [--sarif]
+  node scripts/skillqa.mjs batch  <dir>  [--json] [--markdown] [--out <file>] [--fail-under <n>]
 
 Options:
-  --json          Output score as JSON (score command only)
-  --fail-under N  Exit non-zero if score < N (score command)
-  --strict        Exit non-zero on critical safety or structural failure (audit command)
-  --out <file>    Output report to file (report command only)
+  --json          Output as JSON
+  --markdown      Output batch review as markdown
+  --sarif         Output report in SARIF 2.1.0 format
+  --fail-under N  Exit non-zero if score < N
+  --strict        Exit non-zero on critical safety or structural failure
+  --out <file>    Write output to file
 
 Exit codes:
   0  Pass
@@ -1171,15 +1431,28 @@ function main() {
   // Parse flags
   const isStrict = args.includes('--strict');
   const isJSON = args.includes('--json');
+  const isMarkdown = args.includes('--markdown');
+  const isSARIF = args.includes('--sarif');
   const failUnderIdx = args.indexOf('--fail-under');
   const failUnder = failUnderIdx !== -1 ? parseInt(args[failUnderIdx + 1], 10) : null;
+  const outIdx = args.indexOf('--out');
+  const outPath = outIdx !== -1 ? args[outIdx + 1] : null;
+
+  function writeOut(content) {
+    if (outPath) {
+      const outDir = dirname(resolve(outPath));
+      if (!existsSync(outDir)) mkdirSync(outDir, { recursive: true });
+      writeFileSync(resolve(outPath), content, 'utf-8');
+      console.log(`\n  ✅ Written to: ${resolve(outPath)}`);
+    } else {
+      console.log(content);
+    }
+  }
 
   switch (command) {
     case 'audit': {
       const result = runAudit(skillPath);
       console.log(formatAuditTerminal(result));
-
-      // --strict exit codes
       if (isStrict) {
         if (result._hasMissingSkillMd) {
           console.error('\n  ✖ STRICT: Missing SKILL.md — exit 3');
@@ -1222,8 +1495,6 @@ function main() {
         }
         console.log('');
       }
-
-      // --fail-under exit code
       if (failUnder !== null && result.score.total < failUnder) {
         console.error(`  ✖ FAIL: Score ${result.score.total} is below threshold ${failUnder}`);
         process.exit(1);
@@ -1232,27 +1503,46 @@ function main() {
     }
 
     case 'report': {
-      const outIdx = args.indexOf('--out');
-      if (outIdx === -1 || !args[outIdx + 1]) {
+      if (!outPath) {
         console.error('Error: --out <file> is required for report command');
         process.exit(1);
       }
-      const outPath = args[outIdx + 1];
       const result = runAudit(skillPath);
-      const report = formatReportMarkdown(result);
-
-      // Ensure output directory exists
-      const outDir = dirname(resolve(outPath));
-      if (!existsSync(outDir)) {
-        mkdirSync(outDir, { recursive: true });
+      if (isSARIF) {
+        writeOut(formatSARIF(result));
+      } else {
+        writeOut(formatReportMarkdown(result));
       }
-
-      writeFileSync(resolve(outPath), report, 'utf-8');
-      console.log(`\n  ✅ Report written to: ${resolve(outPath)}`);
       const scoreLabel = result.score.policyCaps.length > 0
         ? `Raw: ${result.score.rawTotal} → Final: ${result.score.total}/${result.score.max}`
         : `Score: ${result.score.total}/${result.score.max}`;
       console.log(`  ${scoreLabel} (${result.rating})\n`);
+      break;
+    }
+
+    case 'batch': {
+      const batch = runBatch(skillPath);
+      if (isJSON) {
+        writeOut(JSON.stringify(batch, null, 2));
+      } else if (isMarkdown) {
+        writeOut(formatBatchMarkdown(batch));
+      } else {
+        // Terminal summary
+        console.log(`\n  Batch Review: ${batch.totalSkills} skills scanned`);
+        console.log(`  Avg raw: ${batch.summary.avgRaw} | Avg final: ${batch.summary.avgFinal} | Capped: ${batch.summary.policyCapped}\n`);
+        for (const r of batch.results) {
+          const caps = r.score.policyCaps.length > 0 ? ` [${r.score.policyCaps.map(c => c.id).join(', ')}]` : '';
+          console.log(`    ${r.name.padEnd(30)} ${String(r.score.total).padStart(3)}/${r.score.max} ${r.rating}${caps}`);
+        }
+        console.log('');
+      }
+      if (failUnder !== null) {
+        const failing = batch.results.filter(r => r.score.total < failUnder);
+        if (failing.length > 0) {
+          console.error(`  ✖ FAIL: ${failing.length} skill(s) below threshold ${failUnder}`);
+          process.exit(1);
+        }
+      }
       break;
     }
 

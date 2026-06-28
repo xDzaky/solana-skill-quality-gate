@@ -1,6 +1,6 @@
 {
   "name": "solana-skill-quality-gate",
-  "version": "2.0.0",
+  "version": "3.0.0",
   "description": "Quality, safety, and merge-readiness gate for Solana AI Kit skills",
   "type": "module",
   "main": "scripts/skillqa.mjs",
@@ -15,7 +15,9 @@
     "report:good": "node scripts/skillqa.mjs report scripts/fixtures/good-skill --out examples/audit-report-good.md",
     "report:bad": "node scripts/skillqa.mjs report scripts/fixtures/bad-skill --out examples/audit-report-bad.md",
     "report:self": "node scripts/skillqa.mjs report . --out examples/audit-report-self.md",
-    "benchmark": "node scripts/skillqa.mjs score scripts/fixtures/good-skill --json --fail-under 80 && node scripts/skillqa.mjs audit scripts/fixtures/bad-skill --strict || true",
+    "batch": "node scripts/skillqa.mjs batch scripts/fixtures/benchmark-samples --json --out examples/batch-review.json",
+    "batch:md": "node scripts/skillqa.mjs batch scripts/fixtures/benchmark-samples --markdown --out examples/batch-review.md",
+    "sarif:bad": "node scripts/skillqa.mjs report scripts/fixtures/bad-skill --sarif --out examples/bad-skill.sarif",
     "gate": "node scripts/skillqa.mjs score . --json --fail-under 90"
   },
   "keywords": [
@@ -25,7 +27,9 @@
     "quality-gate",
     "audit",
     "security",
-    "supply-chain"
+    "supply-chain",
+    "sarif",
+    "batch-review"
   ],
   "license": "MIT",
   "engines": {

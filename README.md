@@ -2,7 +2,7 @@
 
 [![Test](https://github.com/xDzaky/solana-skill-quality-gate/actions/workflows/test.yml/badge.svg)](https://github.com/xDzaky/solana-skill-quality-gate/actions/workflows/test.yml)
 
-A quality, safety, and merge-readiness gate for [Solana AI Kit](https://github.com/sendai-sf/solana-ai-kit) skills.
+A quality, safety, and merge-readiness gate for [Solana AI Kit](https://github.com/solanabr/solana-ai-kit) skills.
 
 **This is not another domain skill.** It is a maintainer-facing quality gate that helps Solana AI Kit safely accept better skills.
 
@@ -13,9 +13,9 @@ A quality, safety, and merge-readiness gate for [Solana AI Kit](https://github.c
 ```bash
 git clone https://github.com/xDzaky/solana-skill-quality-gate
 cd solana-skill-quality-gate
-npm test                                                # 35 tests
-npm run audit:self                                      # self-audit
-node scripts/skillqa.mjs score . --json --fail-under 90 # CI gate
+npm test                                                # 50 tests
+npm run gate                                            # self-audit ≥ 90
+node scripts/skillqa.mjs batch scripts/fixtures/benchmark-samples --json
 ```
 
 ---
@@ -40,8 +40,10 @@ Maintainers need a **repeatable, deterministic way** to quickly triage submissio
 | **SKILL.md validation** | Checks YAML frontmatter, name convention, description |
 | **Progressive disclosure** | Verifies router pattern, line limits, focused file routing |
 | **Safety scanning** | Negation-aware detection of prompt injection, secret collection, exfiltration, priority manipulation, opaque execution |
-| **Solana fit scoring** | Keyword density, ecosystem depth, keyword-stuffing detection |
+| **Solana fit scoring** | Keyword density + evidence-based structural signals |
 | **Policy caps** | Critical findings cap the total score (prompt injection → max 39, opaque exec → max 29) |
+| **Batch review** | Score multiple skills in one command with sorted results |
+| **SARIF output** | GitHub Code Scanning compatible SARIF 2.1.0 format |
 | **Strict CI mode** | `--strict` exits non-zero on safety or structural failures |
 | **Fail-under gate** | `--fail-under N` exits non-zero if score < threshold |
 | **Report generation** | Markdown reports with raw/final scores, applied caps, PR checklist |
@@ -54,24 +56,40 @@ Maintainers need a **repeatable, deterministic way** to quickly triage submissio
 ### Quick Audit
 
 ```bash
-# Terminal output with emoji status
-node scripts/skillqa.mjs audit <path>
+node scripts/skillqa.mjs audit <path>                   # Terminal output
+node scripts/skillqa.mjs score <path> --json             # JSON score
+node scripts/skillqa.mjs report <path> --out report.md   # Markdown report
+```
 
-# JSON score for CI pipelines
-node scripts/skillqa.mjs score <path> --json
+### Batch Review
 
-# Full markdown report
-node scripts/skillqa.mjs report <path> --out report.md
+```bash
+# Score all skills in a directory (each subdirectory = one skill)
+node scripts/skillqa.mjs batch ./submissions --json --out batch.json
+node scripts/skillqa.mjs batch ./submissions --markdown --out batch.md
+node scripts/skillqa.mjs batch ./submissions --fail-under 80
+```
+
+Output includes: total skills, pass/fail count, average scores, policy-capped count, top risks, and sorted results (worst first).
+
+### SARIF for GitHub Code Scanning
+
+```bash
+node scripts/skillqa.mjs report <path> --sarif --out skill.sarif
+```
+
+Upload to GitHub Code Scanning with:
+```yaml
+- uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: skill.sarif
 ```
 
 ### CI Gate
 
 ```bash
-# Pass/fail gate (exit 1 if below threshold)
-node scripts/skillqa.mjs score <path> --json --fail-under 85
-
-# Strict mode (exit 2 on safety, exit 3 on missing SKILL.md)
-node scripts/skillqa.mjs audit <path> --strict
+node scripts/skillqa.mjs score <path> --json --fail-under 85   # exit 1 if below
+node scripts/skillqa.mjs audit <path> --strict                  # exit 2 on safety
 ```
 
 ### Exit Codes
@@ -82,42 +100,6 @@ node scripts/skillqa.mjs audit <path> --strict
 | `1` | Score below `--fail-under` threshold |
 | `2` | Critical safety failure (`--strict`) |
 | `3` | Invalid structure / missing SKILL.md (`--strict`) |
-
-### Self-Audit
-
-```bash
-npm run audit:self    # Terminal audit of this repo
-npm run score:self    # JSON score of this repo
-npm run report:self   # Markdown report → examples/audit-report-self.md
-```
-
----
-
-## Install
-
-### Standard Install (user-level)
-
-```bash
-git clone https://github.com/xDzaky/solana-skill-quality-gate
-cd solana-skill-quality-gate
-bash install.sh
-```
-
-### Custom Install
-
-```bash
-# Install to project-local directory
-bash install-custom.sh --project
-
-# Install to custom path
-bash install-custom.sh --target ~/my-skills/quality-gate
-
-# Preview what would be installed
-bash install-custom.sh --dry-run
-
-# Non-interactive
-bash install-custom.sh --user --yes
-```
 
 ---
 
@@ -130,9 +112,23 @@ bash install-custom.sh --user --yes
 | Structure & Format | 20 | SKILL.md, frontmatter, name, description, LICENSE |
 | Progressive Disclosure | 20 | File size, routing, inline blocks |
 | Safety & Supply-Chain | 25 | Prompt injection, secrets, exfiltration, opaque exec |
-| Solana Ecosystem Fit | 15 | Keyword depth, stuffing detection |
+| Solana Ecosystem Fit | 15 | Keyword depth + evidence-based signals |
 | Install & Test Ready | 10 | install.sh, tests, CI workflow |
 | Documentation | 10 | README, examples, content quality |
+
+### Solana Fit Evidence
+
+Beyond keyword counting, the scanner checks 5 structural evidence signals:
+
+| Signal | What It Checks |
+|--------|---------------|
+| Workflow Evidence | SKILL.md has concrete "When to Use" / workflow sections |
+| Focused Files Evidence | Non-SKILL.md files in skill/ contain Solana instructions |
+| README Problem Evidence | README explains a real Solana builder problem |
+| Examples Evidence | examples/ or commands/ contain Solana-specific content |
+| Boundary Evidence | Skill defines scope boundaries ("does not", "out of scope") |
+
+JSON output includes `solanaEvidence` object with each signal as boolean.
 
 ### Ratings
 
@@ -146,7 +142,7 @@ bash install-custom.sh --user --yes
 
 ### Policy Caps
 
-Critical findings **automatically cap the total score**, regardless of other categories:
+Critical findings **automatically cap the total score**:
 
 | Finding | Max Score |
 |---------|-----------|
@@ -158,7 +154,26 @@ Critical findings **automatically cap the total score**, regardless of other cat
 | Missing SKILL.md | 49 |
 | No Solana-specific content | 59 |
 
-Reports show both **raw score** and **policy-adjusted final score**.
+---
+
+## Install
+
+### Standard Install
+
+```bash
+git clone https://github.com/xDzaky/solana-skill-quality-gate
+cd solana-skill-quality-gate
+bash install.sh
+```
+
+### Custom Install
+
+```bash
+bash install-custom.sh --project       # Project-local
+bash install-custom.sh --target ~/dir  # Custom path
+bash install-custom.sh --dry-run       # Preview
+bash install-custom.sh --user --yes    # Non-interactive
+```
 
 ---
 
@@ -167,25 +182,8 @@ Reports show both **raw score** and **policy-adjusted final score**.
 - ❌ Does not execute any code from the audited skill
 - ❌ Does not perform semantic/LLM-based analysis
 - ❌ Does not replace human code review
-- ❌ Does not verify runtime behavior or functional correctness
+- ❌ Does not verify runtime behavior
 - ❌ Does not access the network or collect secrets
-
----
-
-## Limitations
-
-- **Keyword-based detection**: Uses pattern matching, not semantic understanding. Obfuscated malicious content may evade detection.
-- **No runtime analysis**: Cannot detect issues that only appear during execution.
-- **English-focused**: Safety patterns are in English. Non-English prompt injection may not be detected.
-- **Assistive tool**: Designed to speed up human review, not to replace it entirely.
-
----
-
-## False Positive / False Negative Policy
-
-- **Negation-aware**: Phrases like "No private keys required" or "does not ignore instructions" are recognized as safe and not flagged.
-- **Self-audit safe**: Scanner infrastructure files (rules, fixtures, docs, examples) are excluded from safety scanning during self-audit to prevent false positives from rule definitions.
-- **Conservative caps**: Policy caps err on the side of caution. A skill with any critical safety finding is capped below "Fair" to force manual review.
 
 ---
 
@@ -193,27 +191,25 @@ Reports show both **raw score** and **policy-adjusted final score**.
 
 - **Read-only** — never modifies the audited skill
 - **No network calls** — works entirely offline
-- **No secret collection** — never asks for private keys, seed phrases, RPC keys, or wallet secrets
-- **No script execution** — does not run install.sh or any code from the audited skill
+- **No secret collection** — never asks for private keys, seed phrases, or wallet secrets
+- **No script execution** — does not run install.sh or any audited code
 - **No opaque binaries** — zero npm dependencies, single readable .mjs file
-- **Transparent** — all rules in `scripts/rules.json`, all logic in `scripts/skillqa.mjs`
+- **Transparent** — all rules in `scripts/rules.json`
 
 ---
 
 ## Judge Checklist
 
-For judges evaluating this submission:
-
-- [ ] `npm test` passes (35 tests)
-- [ ] `npm run score:self` shows 100/100
-- [ ] `node scripts/skillqa.mjs score . --json --fail-under 90` exits 0
-- [ ] `node scripts/skillqa.mjs audit scripts/fixtures/bad-skill --strict` exits 2
+- [ ] `npm test` passes (50 tests)
+- [ ] `npm run gate` passes (self-audit ≥ 90)
+- [ ] `node scripts/skillqa.mjs batch scripts/fixtures/benchmark-samples --json` shows 5 skills
+- [ ] `node scripts/skillqa.mjs report scripts/fixtures/bad-skill --sarif --out bad.sarif` produces valid SARIF
 - [ ] Bad fixture scores ≤ 39 (policy-capped)
 - [ ] Good fixture scores ≥ 80
-- [ ] Reports show raw score, final score, and applied caps
 - [ ] Scanner has zero npm dependencies
 - [ ] No network calls, no secrets, no script execution
-- [ ] `install.sh` and `install-custom.sh` are transparent and safe
+
+See [SUBMISSION.md](./SUBMISSION.md) for the full bounty submission.
 
 ---
 
@@ -222,29 +218,33 @@ For judges evaluating this submission:
 ```
 solana-skill-quality-gate/
 ├── skill/                    # SKILL.md router + focused docs
-│   ├── SKILL.md             # Progressive disclosure entry point
-│   ├── quick-audit.md       # Quick audit workflow
-│   ├── deep-audit.md        # Deep audit details
-│   ├── semantic-supply-chain-review.md
-│   ├── quality-gates.md     # Scoring rubric
-│   └── report-template.md   # Report format
 ├── commands/                 # Agent command definitions
 ├── agents/                   # Agent persona
 ├── scripts/
 │   ├── skillqa.mjs          # CLI scanner (zero deps)
 │   ├── rules.json           # Detection rules
-│   ├── test.mjs             # Test runner (35 tests)
+│   ├── test.mjs             # Test runner (50 tests)
 │   └── fixtures/            # Test fixtures
 │       ├── good-skill/      # 95/100 Excellent
 │       ├── bad-skill/       # 29/100 Poor (capped)
 │       └── benchmark-samples/  # 5 benchmark fixtures
-├── examples/                 # Generated reports
+├── examples/                 # Generated reports, SARIF, batch reviews
 ├── install.sh               # Standard installer
-├── install-custom.sh        # Custom installer (--target, --project, --dry-run)
+├── install-custom.sh        # Custom installer
+├── SUBMISSION.md            # Bounty submission document
 ├── .github/workflows/       # CI (Node 18/20/22)
 ├── LICENSE                  # MIT
 └── README.md                # This file
 ```
+
+---
+
+## Links
+
+- [Solana AI Kit](https://github.com/solanabr/solana-ai-kit)
+- [Skill Bounty](https://github.com/solanabr/skill-bounty)
+- [Real Submission Smoke Test](./examples/real-submission-smoke-test.md)
+- [SUBMISSION.md](./SUBMISSION.md)
 
 ---
 
