@@ -2,24 +2,38 @@
 
 [![Test](https://github.com/xDzaky/solana-skill-quality-gate/actions/workflows/test.yml/badge.svg)](https://github.com/xDzaky/solana-skill-quality-gate/actions/workflows/test.yml)
 
-A pre-submit quality gate for Solana skill builders — and a review accelerator for [Solana AI Kit](https://github.com/solanabr/solana-ai-kit) maintainers.
+A quality and trust gate for [Solana AI Kit](https://github.com/solanabr/solana-ai-kit) skills — audit before you install, audit before you submit.
 
-**Builders**: audit your own skill before opening a PR. Catch safety issues, structural problems, and quality gaps early.
+**Builders**: before installing a community skill, check if it's safe and well-structured. Before submitting your own, catch blockers early.
 **Maintainers**: batch-review hundreds of submissions in seconds with deterministic scoring.
 
 ---
 
+## Use It Before You Install
+
+Before trusting a community skill with your agent's context window:
+
+```bash
+# Clone the community skill you want to use
+git clone https://github.com/someone/cool-solana-skill
+
+# Audit it before installing
+node scripts/skillqa.mjs audit ./cool-solana-skill
+
+# Score ≥ 80 and no policy caps → safe to install
+# Score < 40 or policy caps → inspect manually before trusting
+```
+
 ## Use It Before You Submit
 
 ```bash
-# 1. Build your skill
-# 2. Audit it
+# Audit your own skill before opening a PR
 node scripts/skillqa.mjs audit ./my-skill
 
-# 3. Fix blockers, then submit with confidence
+# Fix blockers, then submit with confidence
 ```
 
-Score ≥ 80 with zero policy caps → **ready to submit**. See [quickstart](./skill/quickstart.md) for the full 60-second workflow.
+See [quickstart](./skill/quickstart.md) for the full 60-second workflow.
 
 ---
 
@@ -145,9 +159,28 @@ The `skill/` folder includes rich guides for builders:
 
 ---
 
-## Agent Integration / Claude Code Workflow
+## How Builders Use This Skill in Claude Code
 
-This skill includes an agent persona and a slash command for Claude Code integration.
+This skill is designed to be loaded by Claude Code / Codex as part of the Solana AI Kit. Once installed, builders can invoke it naturally:
+
+```
+You: "I found a community skill for Jupiter swaps. Is it safe to install?"
+
+Agent: [runs skillqa audit on the skill]
+        Score: 72/100 (Good)
+        ⚠️ No LICENSE file
+        ⚠️ install.sh makes network calls
+        Verdict: FIX FIRST — inspect install.sh before trusting.
+
+You: "Audit my own skill before I submit the PR."
+
+Agent: [runs skillqa audit on your skill]
+        Score: 91/100 (Excellent)
+        ✅ No safety findings
+        Verdict: READY — submit your PR.
+```
+
+This skill also includes an agent persona and a slash command for structured integration.
 
 ### `/review-skill <path>`
 
