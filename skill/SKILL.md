@@ -1,52 +1,48 @@
 ---
 name: solana-skill-quality-gate
 description: >
-  Quality, safety, and merge-readiness gate for Solana AI Kit skills.
-  Audits SKILL.md structure, progressive loading, semantic supply-chain risks,
-  Solana ecosystem fit, and PR readiness. Use when reviewing, scoring, or
-  preparing AI skill submissions for Solana AI Kit.
+  Pre-submit quality gate for Solana AI Kit skill builders, and a review
+  accelerator for maintainers. Audits skills for structure, progressive
+  loading, semantic supply-chain risks, Solana ecosystem fit, install
+  readiness, and documentation quality.
 ---
 
 # Solana Skill Quality Gate
 
-Audit, score, and prepare AI skills before they are submitted or merged into [Solana AI Kit](https://github.com/solanabr/solana-ai-kit).
+A builder-first pre-submit quality gate for Solana AI Kit skills.
 
 ## When to Use
 
-- Reviewing a skill submission (PR or repo)
-- Scoring multiple skills for comparison
-- Preparing your own skill for submission
-- Checking a skill for supply-chain safety risks
-- Verifying Solana ecosystem fit
+- **Before submitting** — audit your own skill to catch blockers before opening a PR
+- **Reviewing submissions** — batch-audit multiple skills for fast triage
+- **CI/CD gates** — enforce quality thresholds with `--strict` and `--fail-under`
+- **Preparing your skill** — learn what makes a good Solana AI Kit skill
 
-## Quick Audit (< 30 seconds)
+## Use It Before You Submit
 
-1. Run the CLI: `node scripts/skillqa.mjs audit ./path-to-skill`
-2. Review the terminal output for pass/fail checks
-3. Check the overall score (0-100)
+1. Build your skill following the [quality guidelines](./what-makes-a-good-solana-skill.md)
+2. Run `node scripts/skillqa.mjs audit ./my-skill` to check for issues
+3. Fix blockers, then open your PR with confidence
 
-## Deep Audit
+## What It Checks
 
-1. Read [quality-gates.md](./quality-gates.md) for the full checklist
-2. Read [progressive-loading.md](./progressive-loading.md) for token-efficiency checks
-3. Read [semantic-supply-chain-review.md](./semantic-supply-chain-review.md) for safety scanning
-4. Read [solana-fit-score.md](./solana-fit-score.md) for ecosystem relevance scoring
-5. Generate a report: `node scripts/skillqa.mjs report ./path-to-skill --out SKILL_AUDIT_REPORT.md`
+- **Structure** — SKILL.md, frontmatter, naming, LICENSE → [quality gates](./quality-gates.md)
+- **Progressive disclosure** — router pattern, file limits → [deep audit](./deep-audit.md)
+- **Safety** — prompt injection, secrets, exfiltration → [safety patterns](./safety-patterns.md)
+- **Solana fit** — keyword depth + evidence signals → [ecosystem signals](./solana-ecosystem-signals.md)
+- **Install & docs** — install.sh, README, examples
 
-## Report Template
+## Quick Audit
 
-See [report-template.md](./report-template.md) for the output format.
+See [quick-audit.md](./quick-audit.md) for the 60-second workflow.
 
-## Safety Boundary
+## Building a Good Skill
 
-- This tool is **read-only by default** — it never modifies the audited skill
-- It makes **no network calls**
-- It does **not execute** any scripts from the audited skill
-- It does **not ask for** private keys, seed phrases, RPC keys, or wallet secrets
-- It is an **assistive scanner**, not a substitute for human security review
+See [what-makes-a-good-solana-skill.md](./what-makes-a-good-solana-skill.md) for DO/DON'T patterns.
 
-## Commands
+## Safety
 
-- `/skill-audit` — Full audit workflow
-- `/skill-score` — Quick scoring for batch review
-- `/prepare-skill-pr` — Prepare a clean PR submission
+- It does **not** ask for private keys, seed phrases, RPC keys, or wallet secrets
+- It does **not** execute any code from audited skills
+- It does **not** make network calls
+- Read-only scanning only

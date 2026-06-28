@@ -2,9 +2,24 @@
 
 [![Test](https://github.com/xDzaky/solana-skill-quality-gate/actions/workflows/test.yml/badge.svg)](https://github.com/xDzaky/solana-skill-quality-gate/actions/workflows/test.yml)
 
-A quality, safety, and merge-readiness gate for [Solana AI Kit](https://github.com/solanabr/solana-ai-kit) skills.
+A pre-submit quality gate for Solana skill builders — and a review accelerator for [Solana AI Kit](https://github.com/solanabr/solana-ai-kit) maintainers.
 
-**This is not another domain skill.** It is a maintainer-facing quality gate that helps Solana AI Kit safely accept better skills.
+**Builders**: audit your own skill before opening a PR. Catch safety issues, structural problems, and quality gaps early.
+**Maintainers**: batch-review 247+ submissions in seconds with deterministic scoring.
+
+---
+
+## Use It Before You Submit
+
+```bash
+# 1. Build your skill
+# 2. Audit it
+node scripts/skillqa.mjs audit ./my-skill
+
+# 3. Fix blockers, then submit with confidence
+```
+
+The scanner checks structure, progressive disclosure, safety, Solana fit, install readiness, and docs — giving you a score out of 100 with a PR-ready checklist.
 
 ---
 
@@ -20,16 +35,16 @@ node scripts/skillqa.mjs batch scripts/fixtures/benchmark-samples --json
 
 ---
 
-## Why This Can Help Solana AI Kit Maintainers
+## Judge Demo Path
 
-The bounty has **247+ submissions** and **82+ open PRs**. Many skills look good in a README but are actually:
-
-- **Unsafe** — contain prompt injection, secret collection, or opaque install scripts
-- **Token-inefficient** — monolithic SKILL.md with 300+ lines loaded every time
-- **Not Solana-specific** — generic crypto tools with keyword stuffing
-- **Structurally invalid** — missing SKILL.md, no frontmatter, no progressive disclosure
-
-Maintainers need a **repeatable, deterministic way** to quickly triage submissions. This scanner provides that.
+```bash
+npm test                                                                        # 50 tests pass
+npm run gate                                                                    # self-audit 100/100
+node scripts/skillqa.mjs audit scripts/fixtures/good-skill                      # 95/100 Excellent
+node scripts/skillqa.mjs audit scripts/fixtures/bad-skill --strict              # exit 2 (safety)
+node scripts/skillqa.mjs batch scripts/fixtures/benchmark-samples --markdown    # 5 skills, sorted
+node scripts/skillqa.mjs report scripts/fixtures/bad-skill --sarif --out bad.sarif  # SARIF 2.1.0
+```
 
 ---
 
@@ -40,10 +55,10 @@ Maintainers need a **repeatable, deterministic way** to quickly triage submissio
 | **SKILL.md validation** | Checks YAML frontmatter, name convention, description |
 | **Progressive disclosure** | Verifies router pattern, line limits, focused file routing |
 | **Safety scanning** | Negation-aware detection of prompt injection, secret collection, exfiltration, priority manipulation, opaque execution |
-| **Solana fit scoring** | Keyword density + evidence-based structural signals |
-| **Policy caps** | Critical findings cap the total score (prompt injection → max 39, opaque exec → max 29) |
+| **Solana fit scoring** | Keyword density + [evidence-based structural signals](./skill/solana-ecosystem-signals.md) |
+| **Policy caps** | Critical findings cap total score (prompt injection → max 39) |
 | **Batch review** | Score multiple skills in one command with sorted results |
-| **SARIF output** | GitHub Code Scanning compatible SARIF 2.1.0 format |
+| **SARIF output** | GitHub Code Scanning compatible SARIF 2.1.0 |
 | **Strict CI mode** | `--strict` exits non-zero on safety or structural failures |
 | **Fail-under gate** | `--fail-under N` exits non-zero if score < threshold |
 | **Report generation** | Markdown reports with raw/final scores, applied caps, PR checklist |
@@ -64,25 +79,15 @@ node scripts/skillqa.mjs report <path> --out report.md   # Markdown report
 ### Batch Review
 
 ```bash
-# Score all skills in a directory (each subdirectory = one skill)
 node scripts/skillqa.mjs batch ./submissions --json --out batch.json
 node scripts/skillqa.mjs batch ./submissions --markdown --out batch.md
 node scripts/skillqa.mjs batch ./submissions --fail-under 80
 ```
 
-Output includes: total skills, pass/fail count, average scores, policy-capped count, top risks, and sorted results (worst first).
-
 ### SARIF for GitHub Code Scanning
 
 ```bash
 node scripts/skillqa.mjs report <path> --sarif --out skill.sarif
-```
-
-Upload to GitHub Code Scanning with:
-```yaml
-- uses: github/codeql-action/upload-sarif@v3
-  with:
-    sarif_file: skill.sarif
 ```
 
 ### CI Gate
@@ -103,97 +108,56 @@ node scripts/skillqa.mjs audit <path> --strict                  # exit 2 on safe
 
 ---
 
-## Scoring
-
-### Categories (100 points total)
+## Scoring (100 points)
 
 | Category | Max | What It Checks |
 |----------|-----|----------------|
 | Structure & Format | 20 | SKILL.md, frontmatter, name, description, LICENSE |
 | Progressive Disclosure | 20 | File size, routing, inline blocks |
 | Safety & Supply-Chain | 25 | Prompt injection, secrets, exfiltration, opaque exec |
-| Solana Ecosystem Fit | 15 | Keyword depth + evidence-based signals |
+| Solana Ecosystem Fit | 15 | Keyword depth + 5 evidence signals |
 | Install & Test Ready | 10 | install.sh, tests, CI workflow |
 | Documentation | 10 | README, examples, content quality |
 
-### Solana Fit Evidence
-
-Beyond keyword counting, the scanner checks 5 structural evidence signals:
-
-| Signal | What It Checks |
-|--------|---------------|
-| Workflow Evidence | SKILL.md has concrete "When to Use" / workflow sections |
-| Focused Files Evidence | Non-SKILL.md files in skill/ contain Solana instructions |
-| README Problem Evidence | README explains a real Solana builder problem |
-| Examples Evidence | examples/ or commands/ contain Solana-specific content |
-| Boundary Evidence | Skill defines scope boundaries ("does not", "out of scope") |
-
-JSON output includes `solanaEvidence` object with each signal as boolean.
-
-### Ratings
-
-| Score | Rating |
-|-------|--------|
-| 80–100 | Excellent |
-| 60–79 | Good |
-| 40–59 | Fair |
-| 20–39 | Poor |
-| 0–19 | Failing |
-
 ### Policy Caps
-
-Critical findings **automatically cap the total score**:
 
 | Finding | Max Score |
 |---------|-----------|
-| Prompt injection detected | 39 |
-| Secret collection detected | 39 |
-| Opaque/suspicious execution | 29 |
+| Prompt injection | 39 |
+| Secret collection | 39 |
+| Opaque execution | 29 |
 | Priority manipulation | 49 |
-| Suspicious install script | 39 |
+| Suspicious install | 39 |
 | Missing SKILL.md | 49 |
-| No Solana-specific content | 59 |
+| No Solana content | 59 |
 
 ---
 
-## Install
+## Skill Documentation
 
-### Standard Install
+The `skill/` folder includes rich guides for builders:
 
-```bash
-git clone https://github.com/xDzaky/solana-skill-quality-gate
-cd solana-skill-quality-gate
-bash install.sh
-```
-
-### Custom Install
-
-```bash
-bash install-custom.sh --project       # Project-local
-bash install-custom.sh --target ~/dir  # Custom path
-bash install-custom.sh --dry-run       # Preview
-bash install-custom.sh --user --yes    # Non-interactive
-```
+- [What Makes a Good Solana Skill](./skill/what-makes-a-good-solana-skill.md) — structure, DO/DON'T examples
+- [Safety Patterns](./skill/safety-patterns.md) — anti-patterns to avoid with safe alternatives
+- [Solana Ecosystem Signals](./skill/solana-ecosystem-signals.md) — how to prove real Solana fit
+- [Quality Gates](./skill/quality-gates.md) — scoring rubric details
 
 ---
 
-## What This Does NOT Do
+## Agent & Command Integration
 
-- ❌ Does not execute any code from the audited skill
-- ❌ Does not perform semantic/LLM-based analysis
-- ❌ Does not replace human code review
-- ❌ Does not verify runtime behavior
-- ❌ Does not access the network or collect secrets
+- **Agent**: [`agents/skill-reviewer-agent.md`](./agents/skill-reviewer-agent.md) — activates on "review this skill"
+- **Command**: [`commands/review-skill.md`](./commands/review-skill.md) — `/review-skill <path>` gives go/no-go verdict
 
 ---
 
 ## Safety Model
 
-- **Read-only** — never modifies the audited skill
+- **Read-only** — never modifies audited skills
 - **No network calls** — works entirely offline
-- **No secret collection** — never asks for private keys, seed phrases, or wallet secrets
-- **No script execution** — does not run install.sh or any audited code
-- **No opaque binaries** — zero npm dependencies, single readable .mjs file
+- **No secret collection** — never asks for private keys or seed phrases
+- **No script execution** — does not run install.sh or audited code
+- **Zero npm dependencies** — single readable .mjs file
 - **Transparent** — all rules in `scripts/rules.json`
 
 ---
@@ -202,11 +166,15 @@ bash install-custom.sh --user --yes    # Non-interactive
 
 - [ ] `npm test` passes (50 tests)
 - [ ] `npm run gate` passes (self-audit ≥ 90)
-- [ ] `node scripts/skillqa.mjs batch scripts/fixtures/benchmark-samples --json` shows 5 skills
-- [ ] `node scripts/skillqa.mjs report scripts/fixtures/bad-skill --sarif --out bad.sarif` produces valid SARIF
-- [ ] Bad fixture scores ≤ 39 (policy-capped)
-- [ ] Good fixture scores ≥ 80
-- [ ] Scanner has zero npm dependencies
+- [ ] Builder pre-submit workflow exists ("Use It Before You Submit")
+- [ ] [Community scan report](./examples/community-scan-report.md) shows 5 archetypes
+- [ ] SKILL.md routes to focused docs (safety, ecosystem, quality)
+- [ ] `/review-skill` command exists
+- [ ] Skill reviewer agent exists
+- [ ] Batch review works: `skillqa batch ... --json`
+- [ ] SARIF output works: `skillqa report ... --sarif`
+- [ ] Test count consistent across README, SUBMISSION.md, CI
+- [ ] Zero npm dependencies
 - [ ] No network calls, no secrets, no script execution
 
 See [SUBMISSION.md](./SUBMISSION.md) for the full bounty submission.
@@ -217,24 +185,30 @@ See [SUBMISSION.md](./SUBMISSION.md) for the full bounty submission.
 
 ```
 solana-skill-quality-gate/
-├── skill/                    # SKILL.md router + focused docs
-├── commands/                 # Agent command definitions
-├── agents/                   # Agent persona
+├── skill/                         # Skill docs (progressive disclosure)
+│   ├── SKILL.md                  # Router entry point
+│   ├── what-makes-a-good-solana-skill.md
+│   ├── safety-patterns.md
+│   ├── solana-ecosystem-signals.md
+│   ├── quality-gates.md
+│   └── ...
+├── commands/
+│   ├── skill-audit.md            # /skill-audit command
+│   └── review-skill.md           # /review-skill command
+├── agents/
+│   ├── skill-quality-reviewer.json
+│   └── skill-reviewer-agent.md   # Reviewer agent persona
 ├── scripts/
-│   ├── skillqa.mjs          # CLI scanner (zero deps)
-│   ├── rules.json           # Detection rules
-│   ├── test.mjs             # Test runner (50 tests)
-│   └── fixtures/            # Test fixtures
-│       ├── good-skill/      # 95/100 Excellent
-│       ├── bad-skill/       # 29/100 Poor (capped)
-│       └── benchmark-samples/  # 5 benchmark fixtures
-├── examples/                 # Generated reports, SARIF, batch reviews
-├── install.sh               # Standard installer
-├── install-custom.sh        # Custom installer
-├── SUBMISSION.md            # Bounty submission document
-├── .github/workflows/       # CI (Node 18/20/22)
-├── LICENSE                  # MIT
-└── README.md                # This file
+│   ├── skillqa.mjs               # CLI scanner (zero deps)
+│   ├── rules.json                # Detection rules
+│   ├── test.mjs                  # 50 tests
+│   └── fixtures/                 # Test fixtures
+├── examples/                     # Reports, SARIF, batch, community scan
+├── install.sh / install-custom.sh
+├── SUBMISSION.md                 # Bounty submission
+├── .github/workflows/test.yml    # CI (Node 18/20/22)
+├── LICENSE                       # MIT
+└── README.md
 ```
 
 ---
@@ -243,10 +217,8 @@ solana-skill-quality-gate/
 
 - [Solana AI Kit](https://github.com/solanabr/solana-ai-kit)
 - [Skill Bounty](https://github.com/solanabr/skill-bounty)
-- [Real Submission Smoke Test](./examples/real-submission-smoke-test.md)
+- [Community Scan Report](./examples/community-scan-report.md)
 - [SUBMISSION.md](./SUBMISSION.md)
-
----
 
 ## License
 

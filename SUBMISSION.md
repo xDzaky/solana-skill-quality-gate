@@ -2,27 +2,38 @@
 
 ## One-Paragraph Pitch
 
-**solana-skill-quality-gate** is a zero-dependency, read-only CLI scanner that helps Solana AI Kit maintainers triage 247+ skill submissions in minutes instead of hours. It scores skills across 6 categories (structure, progressive disclosure, safety, Solana fit, install readiness, documentation), applies policy caps for critical findings (prompt injection, secret collection, opaque execution), and outputs machine-readable JSON, Markdown reports, SARIF for GitHub Code Scanning, and batch review summaries. It passes its own audit at 100/100.
+**solana-skill-quality-gate** is a pre-submit quality gate for Solana skill builders and a review accelerator for Solana AI Kit maintainers. Builders run `skillqa audit ./my-skill` to catch safety issues, structural problems, and quality gaps before opening a PR — improving their chance of merge. Maintainers use `skillqa batch ./submissions` to triage 247+ submissions in seconds instead of hours. Zero dependencies, read-only, no network calls.
 
 ---
 
 ## Why This Is Novel
 
-Most bounty submissions are **domain skills** (NFT minting, DeFi swaps, staking tools). This is a **meta-skill**: it evaluates the quality, safety, and merge-readiness of other skills.
+Most bounty submissions add one more domain skill. **This submission improves the quality of every future skill.**
 
-No other submission in the bounty addresses the maintainer's bottleneck: **how to safely review 247+ submissions and 82+ open PRs without missing prompt injection, secret exfiltration, or quality issues.**
+It is a meta-infrastructure layer for Solana AI Kit — the first skill whose purpose is to evaluate, score, and gate other skills. I have not found another submission positioned as maintainer/builder quality infrastructure.
+
+Without a quality gate, the kit risks accumulating technical debt, prompt injection vulnerabilities, and low-quality skills that hurt the ecosystem. This skill is the immune system.
 
 ---
 
-## Why This Helps Solana AI Kit Maintainers
+## Why This Is Useful for Solana Builders
 
-| Problem | How This Solves It |
-|---------|-------------------|
-| 247 submissions, manual review is slow | `batch` command scores all submissions in seconds |
-| Unsafe skills slip through | Safety scanner detects prompt injection, secret collection, opaque execution |
-| Generic skills waste tokens | Solana fit scoring + evidence-based checks filter non-Solana content |
-| Inconsistent review standards | Deterministic scoring rubric (100-point scale) with policy caps |
-| CI/CD integration needed | `--strict`, `--fail-under`, SARIF output, exit codes |
+| Builder Problem | How This Solves It |
+|-----------------|-------------------|
+| "Will my skill get merged?" | Run audit before submitting — fix blockers first |
+| "Is my skill safe?" | Safety scanner catches prompt injection, secret collection, opaque exec |
+| "Is my SKILL.md too big?" | Progressive disclosure checker flags monolithic files |
+| "Am I Solana-specific enough?" | Evidence-based Solana fit scoring (not just keywords) |
+| "What do I need to fix?" | PR-ready checklist with must-fix / should-fix / nice-to-have |
+
+### Why This Is Useful for Maintainers
+
+| Maintainer Problem | How This Solves It |
+|-------------------|-------------------|
+| 247 submissions, manual review is slow | `batch` command scores all in seconds |
+| Unsafe skills slip through | Safety scanner + policy caps |
+| Inconsistent review standards | Deterministic 100-point scoring rubric |
+| CI/CD integration needed | `--strict`, `--fail-under`, SARIF, exit codes |
 
 ---
 
@@ -32,37 +43,28 @@ No other submission in the bounty addresses the maintainer's bottleneck: **how t
 git clone https://github.com/xDzaky/solana-skill-quality-gate
 cd solana-skill-quality-gate
 
-# Run test suite (51 tests)
-npm test
-
-# Self-audit gate (must pass ≥ 90)
-npm run gate
-
-# Batch review benchmark fixtures
+npm test                                                          # 50 tests
+npm run gate                                                      # self-audit ≥ 90
 node scripts/skillqa.mjs batch scripts/fixtures/benchmark-samples --json
-
-# SARIF output for GitHub Code Scanning
 node scripts/skillqa.mjs report scripts/fixtures/bad-skill --sarif --out bad.sarif
-
-# Strict mode rejects unsafe skills
-node scripts/skillqa.mjs audit scripts/fixtures/bad-skill --strict
-# Expected: exit 2 (critical safety failure)
+node scripts/skillqa.mjs audit scripts/fixtures/bad-skill --strict  # exit 2
 ```
 
 ---
 
 ## Key Proof Points
 
-- **51 tests** covering self-audit, policy caps, strict mode, fail-under, batch, SARIF, evidence-based fit, hardened self-audit
+- **50 tests** — self-audit, policy caps, strict, fail-under, batch, SARIF, evidence, hardened self-audit
 - **Self-audit: 100/100** — scanner passes its own quality gate
-- **5 benchmark fixtures** with known expected scores (from Excellent to Poor)
-- **Policy caps** prevent unsafe skills from scoring above "Fair"
-- **Batch review** scans multiple skills in one command
-- **SARIF 2.1.0** output for GitHub Code Scanning integration
-- **Evidence-based Solana fit** (5 signals beyond keyword counting)
-- **Hardened self-audit** — strict path identity check prevents bypass
+- **5 benchmark fixtures** with known expected scores
+- **Community scan report** — 5 archetype submissions audited with findings
+- **Batch review** — scan multiple skills in one command
+- **SARIF 2.1.0** — GitHub Code Scanning compatible
+- **Evidence-based Solana fit** — 5 structural signals beyond keyword counting
+- **Builder-first workflow** — "Use It Before You Submit"
+- **Agent + command** — `/review-skill` slash command + reviewer agent persona
 - **Zero npm dependencies** — single readable .mjs file
-- **CI/CD** with Node 18/20/22 matrix
+- **CI** — Node 18/20/22 matrix
 
 ---
 
@@ -80,32 +82,35 @@ node scripts/skillqa.mjs audit scripts/fixtures/bad-skill --strict
 ## Limitations
 
 - Keyword-based detection, not semantic analysis
-- No runtime analysis — cannot detect issues during execution
+- No runtime analysis
 - English-focused safety patterns
-- Assistive tool — designed to speed up human review, not replace it
+- Assistive tool — speeds up human review, does not replace it
 
 ---
 
 ## Bounty Form Answers
 
-**Skill name**: solana-skill-quality-gate
+**Link to Your Submission:**
+https://github.com/xDzaky/solana-skill-quality-gate
 
-**What does your skill do?**
-Quality, safety, and merge-readiness gate for Solana AI Kit skills. Scores skills across 6 categories (structure, progressive disclosure, safety, Solana fit, install readiness, docs). Detects prompt injection, secret collection, and opaque execution. Outputs JSON, Markdown, SARIF, and batch review summaries for maintainer triage.
+**Did you contribute towards existing repos or is it a new idea?**
+This is a new idea.
 
-**Why is it useful for Solana builders?**
-Solana AI Kit has 247+ skill submissions and 82+ open PRs. Maintainers need a fast, deterministic way to triage them. This scanner provides automated quality/safety assessment so maintainers can focus human review on skills that pass the gate.
+`solana-skill-quality-gate` is a builder-first pre-submit quality gate for Solana AI Kit skills, and a review accelerator for maintainers. It helps skill authors audit their own submissions before opening a PR, then helps reviewers triage skills consistently with deterministic scoring, safety checks, Solana fit evidence, batch review, SARIF output, and PR-ready reports.
 
-**How do you install and use it?**
-```bash
-git clone https://github.com/xDzaky/solana-skill-quality-gate
-cd solana-skill-quality-gate
-node scripts/skillqa.mjs audit <path-to-skill>
-node scripts/skillqa.mjs batch <submissions-dir> --json
-```
+**What is your closest "competing" skill?**
+The closest comparison is a mix of generic skill format validation, static safety linting, and PR readiness tooling. However, I have not found another submission positioned as quality infrastructure for the kit itself. This skill checks not only file structure, but also progressive disclosure, semantic supply-chain risks, Solana ecosystem fit, install/test readiness, docs quality, and GitHub Code Scanning-compatible SARIF output.
 
-**Does it have any dependencies?**
-Zero npm dependencies. Single Node.js file (scripts/skillqa.mjs). Requires Node.js 18+.
+**Post any links/proofs:**
+- Repo: https://github.com/xDzaky/solana-skill-quality-gate
+- CI: https://github.com/xDzaky/solana-skill-quality-gate/actions
+- SUBMISSION.md: https://github.com/xDzaky/solana-skill-quality-gate/blob/main/SUBMISSION.md
+- Community scan: https://github.com/xDzaky/solana-skill-quality-gate/blob/main/examples/community-scan-report.md
+- SARIF: https://github.com/xDzaky/solana-skill-quality-gate/blob/main/examples/bad-skill.sarif
+- Batch report: https://github.com/xDzaky/solana-skill-quality-gate/blob/main/examples/batch-review.md
+
+**Anything Else?**
+This submission is not just another domain skill. It is a meta-infrastructure skill that improves the quality of every future Solana AI Kit skill. Most submissions add one more skill. This one protects the ecosystem.
 
 ---
 
@@ -114,19 +119,19 @@ Zero npm dependencies. Single Node.js file (scripts/skillqa.mjs). Requires Node.
 ```markdown
 ## solana-skill-quality-gate
 
-Quality, safety, and merge-readiness gate for Solana AI Kit skills.
+A pre-submit quality gate for Solana skill builders, and a review accelerator for maintainers.
 
 ### What it does
-- Scores skills across 6 categories (100-point scale)
-- Detects prompt injection, secret collection, opaque execution
-- Policy caps prevent unsafe skills from scoring above "Fair"
-- Batch review for triaging 247+ submissions
-- SARIF output for GitHub Code Scanning
+- Builders: audit your skill before submitting (`skillqa audit ./my-skill`)
+- Maintainers: batch-review 247+ submissions in seconds (`skillqa batch ./submissions`)
+- 6-category scoring (100 points): structure, progressive disclosure, safety, Solana fit, install, docs
+- Policy caps for critical findings (prompt injection → max 39)
+- SARIF 2.1.0 for GitHub Code Scanning
 - Evidence-based Solana fit (5 structural signals)
 
 ### Verification
 ```bash
-npm test           # 51 tests
+npm test           # 50 tests
 npm run gate       # self-audit ≥ 90
 ```
 
@@ -135,6 +140,8 @@ npm run gate       # self-audit ≥ 90
 - Read-only, no network calls, no script execution
 - Self-audit: 100/100
 - Node 18/20/22 CI matrix
+- Builder-first pre-submit workflow
+- Agent + command integration
 
 ### Links
 - Repo: https://github.com/xDzaky/solana-skill-quality-gate

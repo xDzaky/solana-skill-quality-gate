@@ -1,7 +1,7 @@
 # Skill Audit Report
 
 **Skill**: solana-skill-quality-gate
-**Audited**: 2026-06-28T14:11:40.663Z
+**Audited**: 2026-06-28T14:49:55.768Z
 **Scanner**: solana-skill-quality-gate v3.0.0
 **Overall Score**: 100/100
 **Rating**: Excellent
@@ -32,15 +32,15 @@
 - name: "solana-skill-quality-gate"
 - name format valid
 - description present
-- description length OK (266 chars)
+- description length OK (246 chars)
 - README.md found
 - LICENSE found (MIT)
 
 ### Progressive Disclosure
 
-- SKILL.md is 53 lines (< 200)
-- SKILL.md is 1968 bytes (< 8192)
-- Routes to 5 focused .md files: quality-gates.md, progressive-loading.md, semantic-supply-chain-review.md, solana-fit-score.md, report-template.md
+- SKILL.md is 49 lines (< 200)
+- SKILL.md is 1890 bytes (< 8192)
+- Routes to 7 focused .md files: what-makes-a-good-solana-skill.md, quality-gates.md, deep-audit.md, safety-patterns.md, solana-ecosystem-signals.md, quick-audit.md, what-makes-a-good-solana-skill.md
 - No excessively large inline instruction blocks
 
 ### Safety & Supply-Chain
@@ -67,7 +67,7 @@
 - README explains the problem/motivation
 - README includes usage examples or code blocks
 - examples/ directory found
-- README has substantial content (8373 chars)
+- README has substantial content (7897 chars)
 
 ---
 

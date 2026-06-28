@@ -34,20 +34,20 @@ Before starting, acknowledge these constraints:
 
 ## Step 1 — Locate the Skill
 
-Identify the target skill directory. Verify the path exists and contains at minimum
-a `SKILL.md` file.
+Identify the target skill directory. The scanner supports two layouts:
 
 ```
-Expected minimum layout:
-<skill-root>/
-├── SKILL.md          # Required — main instruction file
-└── ...               # Additional files vary by skill
+Solana AI Kit repo layout:       Standalone skill layout:
+<repo>/                          <skill-root>/
+├── skill/                       ├── SKILL.md
+│   └── SKILL.md                 └── ...
+└── ...
 ```
 
 **Actions:**
 - List the skill directory contents recursively (max 3 levels deep).
-- Confirm `SKILL.md` is present at the root of the skill directory.
-- If `SKILL.md` is missing, **stop the audit** and report the skill as non-conformant.
+- Confirm `SKILL.md` is present at `skill/SKILL.md` or at the root of the skill directory.
+- If `SKILL.md` is missing in both locations, **stop the audit** and report as non-conformant.
 
 **Record:** directory tree snapshot for the report.
 
